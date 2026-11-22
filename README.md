@@ -94,3 +94,27 @@ daily log-return draws, and monthly contributions every
 Simulation results represent hypothetical scenarios rather
 than guaranteed investment outcomes. Taxes, fees, inflation,
 and changing market conditions are not explicitly modeled.
+
+## Advanced Risk Metrics
+
+The risk analysis engine evaluates historical portfolio
+performance and potential downside risk from Monte Carlo
+simulations.
+
+Supported metrics include:
+
+- Sharpe ratio
+- Maximum drawdown
+- Value at Risk (VaR)
+- Expected shortfall (CVaR)
+- Probability of simulated investment losses
+- Mean and median ending portfolio values
+- Total invested capital
+
+Historical VaR and drawdown are expressed as fractional
+losses, while simulated terminal VaR and expected shortfall
+are expressed in currency units.
+
+Simulated losses account for recurring contributions.
+These metrics are historical or model-based estimates
+and do not guarantee future results.
