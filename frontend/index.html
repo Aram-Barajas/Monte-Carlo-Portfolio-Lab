@@ -12,6 +12,8 @@
     <script src="/static/chart-tools.js" defer></script>
     <script src="/static/app.js" defer></script>
     <script src="/static/backtest.js" defer></script>
+    <script src="/static/stress-test.js" defer></script>
+
 </head>
 <body>
     <header class="masthead">
@@ -174,6 +176,51 @@ AMZN, 15</textarea>
                     </p>
 
                 </div>
+                <div class="stress-controls">
+
+                    <label class="compare-switch">
+                        <input id="stress-custom-enabled" type="checkbox">
+                        Use custom asset shocks
+                    </label>
+
+                    <div id="stress-custom-input" hidden>
+
+                        <label for="stress-shocks">
+                            Price shocks (%)
+                        </label>
+
+                        <textarea id="stress-shocks"
+                                  rows="4"
+                                  aria-describedby="stress-shock-hint"
+                                  placeholder="VTI, -10"></textarea>
+
+                        <small id="stress-shock-hint">
+                            Enter every Portfolio A ticker once, followed by
+                            its percentage shock from -100 to 100.
+                        </small>
+
+                    </div>
+
+                    <button id="run-stress-test"
+                            type="button"
+                            aria-describedby="stress-hint">
+                        Run portfolio stress test
+                    </button>
+
+                    <p id="stress-hint" class="muted">
+                        Uses Portfolio A and initial investment.
+                        Default shocks: -10%, -20%, -35% and -50%.
+                        No historical data is needed.
+                    </p>
+
+                    <p id="stress-status"
+                       class="muted"
+                       role="status"
+                       aria-live="polite">
+                        Ready to stress test.
+                    </p>
+
+                </div>
             </aside>
 
             <section class="results" aria-label="Research results">
@@ -196,63 +243,6 @@ AMZN, 15</textarea>
 
                     <section class="panel export-panel">
                         <h2>Export simulation data</h2>
-
-                        <div class="chart-inspection">
-
-                            <label for="chart-day">
-                                Inspect trading day
-                            </label>
-
-                            <input id="chart-day"
-                                   type="range"
-                                   min="0"
-                                   max="0"
-                                   value="0"
-                                   step="1"
-                                   aria-describedby="chart-hint">
-
-                            <p id="chart-hint" class="muted">
-                                Hover, tap or use the slider to explore projections.
-                            </p>
-
-                            <p id="chart-day-label"
-                               class="chart-day-label"></p>
-
-                            <dl class="chart-values">
-
-                                <div>
-                                    <dt>5th percentile</dt>
-                                    <dd id="chart-value-p05"></dd>
-                                </div>
-
-                                <div>
-                                    <dt>25th percentile</dt>
-                                    <dd id="chart-value-p25"></dd>
-                                </div>
-
-                                <div>
-                                    <dt>Median (A)</dt>
-                                    <dd id="chart-value-median"></dd>
-                                </div>
-
-                                <div>
-                                    <dt>75th percentile</dt>
-                                    <dd id="chart-value-p75"></dd>
-                                </div>
-
-                                <div>
-                                    <dt>95th percentile</dt>
-                                    <dd id="chart-value-p95"></dd>
-                                </div>
-
-                                <div id="chart-value-b-row" hidden>
-                                    <dt>Median (B)</dt>
-                                    <dd id="chart-value-b"></dd>
-                                </div>
-
-                            </dl>
-
-                        </div>
 
                         <p class="muted">
                             Download the last successful results as CSV,
@@ -333,6 +323,65 @@ AMZN, 15</textarea>
                                 <i class="comparison-color"></i>
                                 Portfolio B median
                             </span>
+                        </div>
+
+
+
+                        <div class="chart-inspection">
+
+                            <label for="chart-day">
+                                Inspect trading day
+                            </label>
+
+                            <input id="chart-day"
+                                   type="range"
+                                   min="0"
+                                   max="0"
+                                   value="0"
+                                   step="1"
+                                   aria-describedby="chart-hint">
+
+                            <p id="chart-hint" class="muted">
+                                Hover, tap or use the slider to explore projections.
+                            </p>
+
+                            <p id="chart-day-label"
+                               class="chart-day-label"></p>
+
+                            <dl class="chart-values">
+
+                                <div>
+                                    <dt>5th percentile</dt>
+                                    <dd id="chart-value-p05"></dd>
+                                </div>
+
+                                <div>
+                                    <dt>25th percentile</dt>
+                                    <dd id="chart-value-p25"></dd>
+                                </div>
+
+                                <div>
+                                    <dt>Median (A)</dt>
+                                    <dd id="chart-value-median"></dd>
+                                </div>
+
+                                <div>
+                                    <dt>75th percentile</dt>
+                                    <dd id="chart-value-p75"></dd>
+                                </div>
+
+                                <div>
+                                    <dt>95th percentile</dt>
+                                    <dd id="chart-value-p95"></dd>
+                                </div>
+
+                                <div id="chart-value-b-row" hidden>
+                                    <dt>Median (B)</dt>
+                                    <dd id="chart-value-b"></dd>
+                                </div>
+
+                            </dl>
+
                         </div>
 
                         <p class="muted">
@@ -510,6 +559,67 @@ AMZN, 15</textarea>
                              aria-label="Historical drawdown by date"
                              viewBox="0 0 760 245">
                         </svg>
+
+                    </section>
+                    <section id="stress-results"
+                             class="panel chart-panel"
+                             aria-label="Portfolio stress test results"
+                             hidden>
+
+                        <h2>Portfolio stress testing | Portfolio A</h2>
+
+                        <p id="stress-summary" class="muted"></p>
+
+                        <div class="table-wrap">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Scenario</th>
+                                        <th scope="col">Return</th>
+                                        <th scope="col">Dollar change</th>
+                                        <th scope="col">Ending value</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="stress-scenarios"></tbody>
+
+                            </table>
+
+                        </div>
+
+                        <label for="stress-scenario-select">
+                            Inspect asset contributions
+                        </label>
+
+                        <select id="stress-scenario-select"></select>
+
+                        <div class="table-wrap">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Asset</th>
+                                        <th scope="col">Allocation</th>
+                                        <th scope="col">Price shock</th>
+                                        <th scope="col">Dollar change</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="stress-assets"></tbody>
+
+                            </table>
+
+                        </div>
+
+                        <p class="muted">
+                            These are instantaneous hypothetical scenarios,
+                            not forecasts.
+
+                            Uniform shocks do not measure diversification benefits.
+                        </p>
 
                     </section>
 

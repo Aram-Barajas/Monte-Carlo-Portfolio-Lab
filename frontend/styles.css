@@ -811,3 +811,40 @@ button {
 .backtest-drawdown {
     stroke: var(--error);
 }
+
+/* Portfolio stress testing */
+
+.stress-controls {
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
+}
+
+#run-stress-test {
+    background: transparent;
+    color: var(--green);
+    border: 1px solid var(--green);
+}
+
+    #run-stress-test:hover {
+        background: var(--field);
+    }
+
+#stress-status.error {
+    color: var(--error);
+}
+
+#stress-results {
+    margin-top: 1.5rem;
+}
+
+    #stress-results label {
+        margin-top: 1.25rem;
+    }
+
+#stress-scenario-select {
+    margin-bottom: .75rem;
+}
+
+#stress-summary {
+    overflow-wrap: anywhere;
+}

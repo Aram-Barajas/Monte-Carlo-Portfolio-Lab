@@ -108,6 +108,24 @@ class DashboardTests(unittest.TestCase):
             "function attachChartInspection",
             script.text
         )
+        self.assertLess(
+            page.index('id="chart"'),
+            page.index('id="chart-day"')
+        )
+
+        self.assertLess(
+            page.index('id="chart-day"'),
+            page.index('id="comparison-results"')
+        )
+        self.assertLess(
+            page.index('id="chart"'),
+            page.index('id="chart-day"')
+        )
+
+        self.assertLess(
+            page.index('id="chart-day"'),
+            page.index('id="comparison-results"')
+        )
     def test_backtest_dashboard_loads(self):
         page = self.client.get("/").text
 
@@ -134,5 +152,36 @@ class DashboardTests(unittest.TestCase):
 
         self.assertIn(
             "/api/backtest",
+            script.text
+        )
+    def test_stress_dashboard_loads(self):
+
+        page = self.client.get("/").text
+
+        script = self.client.get("/static/stress-test.js")
+
+        for id in (
+            "run-stress-test",
+            "stress-custom-enabled",
+            "stress-shocks",
+            "stress-results",
+            "stress-scenarios",
+            "stress-scenario-select",
+            "stress-assets"
+        ):
+            self.assertIn(
+                f'id="{id}"',
+                page
+            )
+
+        self.assertIn(
+            'src="/static/stress-test.js"',
+            page
+        )
+
+        self.assertEqual(script.status_code, 200)
+
+        self.assertIn(
+            "/api/stress-test",
             script.text
         )
