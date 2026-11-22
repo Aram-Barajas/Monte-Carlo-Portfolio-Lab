@@ -71,3 +71,26 @@ Features include:
 
 Correlation is undefined for assets with constant returns.
 Historical correlations may change over time.
+
+## Monte Carlo Simulation Engine
+
+The simulation engine generates potential future portfolio
+trajectories using correlated historical log returns.
+
+Features include:
+
+- Configurable investment horizons
+- Multiple asset allocations
+- Recurring monthly contributions
+- Reproducible random seeds
+- Correlated return simulations
+- Percentile-based outcome summaries
+- Input validation and automated tests
+
+The model assumes daily portfolio rebalancing, independent
+daily log-return draws, and monthly contributions every
+21 trading days.
+
+Simulation results represent hypothetical scenarios rather
+than guaranteed investment outcomes. Taxes, fees, inflation,
+and changing market conditions are not explicitly modeled.
