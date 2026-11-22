@@ -42,3 +42,16 @@ print(returns.head())
 
 This project is intended for educational and research purposes.
 Historical market performance does not guarantee future results.
+
+## Portfolio Metrics
+
+The portfolio analytics engine calculates:
+
+- Annualized historical returns
+- Annualized volatility
+- Weighted daily portfolio returns
+- Portfolio-level return and volatility
+
+Portfolio weights must be nonnegative and sum to 100%.
+Calculations assume daily rebalancing and 252 annual
+trading days by default.
