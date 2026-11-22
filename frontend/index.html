@@ -258,6 +258,69 @@ AMZN, 15</textarea>
                         </section>
                     </div>
 
+                    <section class="panel chart-panel">
+                        <h2>Asset correlation heatmap</h2>
+
+                        <p class="muted">
+                            Pearson correlation between historical daily asset returns.
+                            Values range from -1 to +1.
+                        </p>
+
+                        <div class="correlation-legend"
+                             aria-label="Correlation color legend">
+
+                            <span class="corr-negative-strong">
+                                Strong negative
+                            </span>
+
+                            <span class="corr-negative">
+                                Negative
+                            </span>
+
+                            <span class="corr-neutral">
+                                Near zero
+                            </span>
+
+                            <span class="corr-positive">
+                                Positive
+                            </span>
+
+                            <span class="corr-positive-strong">
+                                Strong positive
+                            </span>
+
+                            <span class="corr-undefined">N/A</span>
+                        </div>
+
+                        <div class="table-wrap"
+                             tabindex="0"
+                             role="region"
+                             aria-label="Portfolio A correlation matrix">
+
+                            <table id="correlation-a"
+                                   class="correlation-matrix">
+                            </table>
+                        </div>
+
+                        <div id="correlation-b-panel"
+                             class="table-wrap"
+                             tabindex="0"
+                             role="region"
+                             aria-label="Portfolio B correlation matrix"
+                             hidden>
+
+                            <table id="correlation-b"
+                                   class="correlation-matrix">
+                            </table>
+                        </div>
+
+                        <p class="muted correlation-note">
+                            N/A means a correlation is undefined, such as when
+                            an asset has constant returns. Historical correlations
+                            may change and do not guarantee diversification benefits.
+                        </p>
+                    </section>
+
                     <section class="panel">
                         <h2>Asset breakdown</h2>
 

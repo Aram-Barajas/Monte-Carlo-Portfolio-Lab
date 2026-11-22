@@ -545,3 +545,103 @@ button {
         display: block;
     }
 }
+
+/* Correlation heatmap */
+
+.correlation-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin-bottom: 1rem;
+    font-size: .75rem;
+}
+
+    .correlation-legend span {
+        padding: .35rem .55rem;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+    }
+
+.correlation-matrix {
+    border-collapse: separate;
+    border-spacing: .25rem;
+    font-variant-numeric: tabular-nums;
+}
+
+    .correlation-matrix caption {
+        text-align: left;
+        font-weight: 700;
+        padding: .65rem 0;
+    }
+
+    .correlation-matrix th,
+    .correlation-matrix td {
+        min-width: 4.2rem;
+        padding: .6rem;
+        border: 0;
+        text-align: center;
+        border-radius: 4px;
+    }
+
+        .correlation-matrix th[scope="row"] {
+            text-align: left;
+        }
+
+    .correlation-matrix td {
+        font-weight: 600;
+    }
+
+/* Negative correlations */
+
+.corr-negative-strong {
+    background: #9d4934;
+    color: #fff;
+}
+
+.corr-negative {
+    background: #e5b4a2;
+    color: #42291f;
+}
+
+/* Neutral correlations */
+
+.corr-neutral {
+    background: var(--paper);
+    color: var(--ink);
+}
+
+/* Positive correlations */
+
+.corr-positive {
+    background: #a4c3a7;
+    color: #20392a;
+}
+
+.corr-positive-strong {
+    background: #35634a;
+    color: #fff;
+}
+
+/* Undefined correlations */
+
+.corr-undefined {
+    background: var(--field);
+    color: var(--muted);
+    border: 1px dashed var(--field-border) !important;
+}
+
+/* Dark mode adjustments */
+
+:root[data-theme="dark"] .corr-negative {
+    background: #b4745e;
+    color: #211814;
+}
+
+:root[data-theme="dark"] .corr-positive {
+    background: #83ac8b;
+    color: #15291d;
+}
+
+.correlation-note {
+    margin: 1rem 0 0;
+}
