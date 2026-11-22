@@ -24,7 +24,7 @@ from .covariance import (
 )
 from .monte_carlo import simulate_portfolio, summarize_simulations
 from .risk_metrics import calculate_historical_risk, calculate_simulation_risk
-
+from .backtest import backtest_portfolio
 
 app = FastAPI(
     title="Monte Carlo Portfolio Lab",
@@ -94,6 +94,13 @@ class PortfolioRequest(MarketRequest):
 
         return self
 
+
+class BacktestRequest(PortfolioRequest):
+    initial_value: float = Field(
+        default=1000,
+        gt=0,
+        le=1_000_000_000
+    )
 
 class SimulationRequest(PortfolioRequest):
     initial_value: float = Field(
@@ -328,3 +335,41 @@ def compare(request: ComparisonRequest):
         }
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+
+@app.post("/api/backtest")
+def backtest(request: BacktestRequest):
+    prices = load_market_data(
+        request,
+        prices=True
+    )
+
+    try:
+        result = backtest_portfolio(
+            prices,
+            request.weights,
+            initial_value=request.initial_value,
+            confidence=request.confidence,
+            annual_risk_free_rate=request.annual_risk_free_rate
+        )
+
+        trajectory = result.pop("trajectory")
+
+        trajectory.index = trajectory.index.strftime(
+            "%Y-%m-%d"
+        )
+
+        return {
+            "tickers": request.tickers,
+            "weights": request.weights,
+            **result,
+            "trajectory": frame_records(
+                trajectory,
+                "date"
+            )
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=422,
+            detail=str(error)
+        ) from error

@@ -288,6 +288,36 @@ Simulated losses account for recurring contributions.
 These metrics are historical or model-based estimates
 and do not guarantee future results.
 
+## Historical Portfolio Backtesting
+
+The backtesting engine replays adjusted historical closing prices
+for a fixed portfolio allocation, assuming daily rebalancing.
+
+Supported metrics include:
+
+- Historical portfolio value
+- Total cumulative return
+- Compound annual growth rate (CAGR)
+- Annualized volatility
+- Sharpe ratio
+- Maximum drawdown
+
+The engine starts with a lump-sum investment at the first common
+price date. CAGR is annualized using 252 trading days and the
+number of observed daily returns.
+
+The engine uses overlapping price history and rejects missing
+prices inside that period.
+
+Backtesting does not include recurring contributions, taxes,
+fees or trading costs. Selecting today's portfolio with hindsight
+can bias historical results.
+
+Historical performance does not guarantee future results.
+
+The engine is available through POST /api/backtest and the
+interactive API documentation.
+
 ## REST API
 
 Start the FastAPI server from the repository root:
