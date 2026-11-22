@@ -40,3 +40,19 @@ jobs:
 
       - name: Run automated tests
         run: python -m pytest -v
+  frontend-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Run frontend export tests
+        run: node --test tests/test_csv_export.cjs

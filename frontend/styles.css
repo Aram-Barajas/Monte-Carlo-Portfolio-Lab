@@ -645,3 +645,41 @@ button {
 .correlation-note {
     margin: 1rem 0 0;
 }
+
+/* CSV export */
+
+.export-panel {
+    margin-bottom: 1rem;
+}
+
+.export-controls {
+    display: flex;
+    align-items: end;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+
+    .export-controls label {
+        flex: 1 1 220px;
+        min-width: 0;
+    }
+
+#export-download {
+    width: auto;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+#export-status {
+    margin: .65rem 0 0;
+}
+
+    #export-status:empty {
+        display: none;
+    }
+
+@media (max-width: 520px) {
+    #export-download {
+        width: 100%;
+    }
+}
