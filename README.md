@@ -55,3 +55,19 @@ The portfolio analytics engine calculates:
 Portfolio weights must be nonnegative and sum to 100%.
 Calculations assume daily rebalancing and 252 annual
 trading days by default.
+
+## Covariance and Correlation Analysis
+
+The application measures relationships between asset returns
+using covariance and Pearson correlation matrices.
+
+Features include:
+
+- Annualized sample covariance matrices
+- Pearson correlation matrices
+- Portfolio variance using matrix multiplication
+- Correlation-aware portfolio volatility
+- Validation of portfolio allocations
+
+Correlation is undefined for assets with constant returns.
+Historical correlations may change over time.
