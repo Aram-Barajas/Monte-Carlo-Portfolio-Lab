@@ -108,11 +108,44 @@ their corresponding Yahoo Finance symbols automatically.
 
 See the Allocation Normalization section for more details.
 
+
+### Exporting Results
+
+After running a simulation, users can download their
+results as CSV files.
+
+Available exports include:
+
+- Portfolio summary and risk metrics
+- Projected percentile bands
+- Simulated ending values
+- Individual asset performance and portfolio weights
+- Asset correlations
+
+When comparing portfolios, exports include results
+for both Portfolio A and Portfolio B.
+
+Exports use the most recent successful simulation.
+Returns, probabilities, volatility, and weights are
+represented as fractional values (0.10 means 10%).
+
+Undefined correlations and Sharpe ratios are blank.
+The summary includes simulation settings and the known
+random seed, when available.
+
 ## Running Tests
 
 ```bash
 python -m pytest -v
 ```
+JavaScript export tests:
+
+```bash
+node --test tests/test_csv_export.cjs
+```
+
+Node.js is required for frontend testing only, not for
+running the dashboard.
 
 ## Example Usage
 

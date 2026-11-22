@@ -13,6 +13,29 @@ const number = id => Number($(id).value);
 let currentBands = null;
 let comparisonBands = null;
 
+let lastExport = null;
+
+$("export-download").addEventListener("click", () => {
+
+    if (!lastExport) {
+        return;
+    }
+
+    try {
+        downloadSimulationCsv(
+            lastExport,
+            $("export-format").value
+        );
+
+        $("export-status").textContent =
+            "CSV download requested.";
+
+    } catch (error) {
+        $("export-status").textContent =
+            "Unable to export results: " + error.message;
+    }
+});
+
 $("compare-enabled").addEventListener("change", () => {
     const enabled = $("compare-enabled").checked;
     $("comparison-input").hidden = !enabled;
@@ -683,6 +706,13 @@ $("simulation-form").addEventListener(
                 render(data);
             }
 
+            lastExport = {
+                data,
+                payload,
+                comparing
+            };
+
+            $("export-status").textContent = "";
             $("status").textContent =
                 "Simulation complete. Results reflect your last submitted settings." +
                 (

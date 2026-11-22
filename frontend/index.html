@@ -8,6 +8,7 @@
     <title>Monte Carlo Portfolio Lab</title>
 
     <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/export.js" defer></script>
     <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -170,6 +171,53 @@ AMZN, 15</textarea>
                 <div id="results" hidden>
 
                     <p id="summary" class="eyebrow"></p>
+
+                    <section class="panel export-panel">
+                        <h2>Export simulation data</h2>
+
+                        <p class="muted">
+                            Download the last successful results as CSV,
+                            including both portfolios when comparison mode was used.
+                        </p>
+
+                        <div class="export-controls">
+                            <label>
+                                Dataset
+
+                                <select id="export-format">
+                                    <option value="summary">
+                                        Summary and risk metrics
+                                    </option>
+
+                                    <option value="projections">
+                                        Projected percentile bands
+                                    </option>
+
+                                    <option value="ending-values">
+                                        Simulated ending values
+                                    </option>
+
+                                    <option value="assets">
+                                        Asset performance and weights
+                                    </option>
+
+                                    <option value="correlations">
+                                        Asset correlations
+                                    </option>
+                                </select>
+                            </label>
+
+                            <button id="export-download" type="button">
+                                Download CSV
+                            </button>
+                        </div>
+
+                        <p id="export-status"
+                           class="muted"
+                           role="status"
+                           aria-live="polite">
+                        </p>
+                    </section>
 
                     <div class="metrics" id="metrics"></div>
 
