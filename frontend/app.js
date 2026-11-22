@@ -275,6 +275,7 @@ function drawChart(bands, otherBands = null) {
         }
 
         chart.append(node);
+        return node;
     }
 
     // Horizontal grid lines and dollar labels.
@@ -357,6 +358,11 @@ function drawChart(bands, otherBands = null) {
             "font-size": 13
         }, `${last * fraction / 252} yr`);
     }
+
+    attachChartInspection({
+        chart, bands, otherBands, left, right,
+        top, bottom, x, y, svg
+    });
 }
 
 
@@ -471,6 +477,9 @@ function render(data, comparison = null, seed = null) {
 
     currentBands = percentiles;
     comparisonBands = comparison ? comparison.percentiles : null;
+
+    $("chart-day").max = String(currentBands.length - 1);
+    $("chart-day").value = $("chart-day").max;
     $("comparison-results").hidden = !comparison;
     $("comparison-legend").hidden = !comparison;
     $("median-label").textContent = comparison ? "Portfolio A median" : "Median";

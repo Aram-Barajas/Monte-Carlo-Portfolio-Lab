@@ -9,7 +9,9 @@
 
     <link rel="stylesheet" href="/static/styles.css">
     <script src="/static/export.js" defer></script>
+    <script src="/static/chart-tools.js" defer></script>
     <script src="/static/app.js" defer></script>
+
 </head>
 <body>
     <header class="masthead">
@@ -254,6 +256,63 @@ AMZN, 15</textarea>
                                 <i class="comparison-color"></i>
                                 Portfolio B median
                             </span>
+                        </div>
+
+                        <div class="chart-inspection">
+
+                            <label for="chart-day">
+                                Inspect trading day
+                            </label>
+
+                            <input id="chart-day"
+                                   type="range"
+                                   min="0"
+                                   max="0"
+                                   value="0"
+                                   step="1"
+                                   aria-describedby="chart-hint">
+
+                            <p id="chart-hint" class="muted">
+                                Hover, tap or use the slider to explore projections.
+                            </p>
+
+                            <p id="chart-day-label"
+                               class="chart-day-label"></p>
+
+                            <dl class="chart-values">
+
+                                <div>
+                                    <dt>5th percentile</dt>
+                                    <dd id="chart-value-p05"></dd>
+                                </div>
+
+                                <div>
+                                    <dt>25th percentile</dt>
+                                    <dd id="chart-value-p25"></dd>
+                                </div>
+
+                                <div>
+                                    <dt>Median (A)</dt>
+                                    <dd id="chart-value-median"></dd>
+                                </div>
+
+                                <div>
+                                    <dt>75th percentile</dt>
+                                    <dd id="chart-value-p75"></dd>
+                                </div>
+
+                                <div>
+                                    <dt>95th percentile</dt>
+                                    <dd id="chart-value-p95"></dd>
+                                </div>
+
+                                <div id="chart-value-b-row" hidden>
+                                    <dt>Median (B)</dt>
+                                    <dd id="chart-value-b"></dd>
+                                </div>
+
+                            </dl>
+
                         </div>
 
                         <p class="muted">

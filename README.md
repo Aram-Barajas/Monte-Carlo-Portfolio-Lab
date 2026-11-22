@@ -109,6 +109,20 @@ their corresponding Yahoo Finance symbols automatically.
 See the Allocation Normalization section for more details.
 
 
+### Interactive Projection Chart
+
+Hover over the chart, tap it on a touchscreen, or use the
+trading-day slider to inspect projected values at a selected
+point in the investment horizon.
+
+The chart displays the 5th, 25th, 50th (median), 75th and
+95th percentiles of Portfolio A. In comparison mode, it
+also displays Portfolio B's median.
+
+The slider supports keyboard navigation and initially
+selects the final simulated trading day. These values are
+hypothetical outcomes, not guaranteed future returns.
+
 ### Exporting Results
 
 After running a simulation, users can download their
