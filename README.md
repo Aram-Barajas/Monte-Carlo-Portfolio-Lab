@@ -20,6 +20,82 @@ Features include:
 python -m pip install -r requirements.txt
 ```
 
+## Using the Interactive Dashboard
+
+Start the application from the repository root:
+
+```bash
+python -m uvicorn backend.api:app --reload
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
+
+The dashboard supports both light and dark themes.
+
+### Simulation Settings
+
+| Setting | Description |
+| --- | --- |
+| Portfolio allocation (%) | Enter each ticker and its allocation percentage. All percentages must total 100%. |
+| History start | Beginning of the historical market data collection. |
+| History end | End of the historical market data collection (exclusive). |
+| Initial investment ($) | Starting amount invested in the portfolio. |
+| Monthly contribution ($) | Additional money invested approximately every month. |
+| Horizon (years) | Number of years into the future to simulate. |
+| Simulations | Number of hypothetical future portfolio paths generated. |
+| Confidence (%) | Confidence level used for Value at Risk and expected shortfall. |
+| Random seed | Allows simulation results to be reproduced using the same inputs and historical data. Leave blank for new random draws. |
+
+### Historical Data vs. Investment Horizon
+
+The historical date range determines which past market data
+is used to estimate returns, volatility, and relationships
+between assets.
+
+The investment horizon determines how far into the future
+the portfolio will be simulated. These are independent settings.
+
+For example:
+
+- History start: January 1, 2023
+- History end: January 1, 2026
+- Investment horizon: 5 years
+- Simulations: 1,000
+
+The application uses approximately three calendar years of
+historical market data to generate 1,000 hypothetical
+five-year portfolio outcomes.
+
+Shorter historical periods emphasize recent market conditions,
+while longer periods may capture a wider variety of market
+conditions.
+
+Try different historical periods while keeping the investment
+horizon unchanged to understand how historical assumptions
+affect simulation results.
+
+All selected assets must have sufficient overlapping
+historical price data.
+
+### Example Portfolio
+
+Enter one ticker and allocation percentage per line:
+
+```text
+VTI, 60
+NVDA, 25
+AMZN, 15
+```
+
+Allocations must total 100%.
+
+Use Yahoo Finance ticker symbols, such as `BRK-B` instead
+of `BRK.B`. If brokerage percentages total 99.99% due to
+rounding, adjust the rounding difference to reach 100%.
+
+Simulation results are hypothetical and do not guarantee
+future investment performance.
+
 ## Running Tests
 
 ```bash
