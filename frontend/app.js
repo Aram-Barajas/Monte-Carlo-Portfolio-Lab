@@ -454,10 +454,138 @@ function render(data, comparison = null, seed = null) {
     $("chart").setAttribute("aria-label", comparison
         ? "Portfolio A percentile bands and both portfolio median trajectories"
         : "Projected portfolio percentile bands");
-    if (comparison) renderComparison(data, comparison, seed);
+    renderCorrelation(
+        analysis,
+        "correlation-a",
+        "Portfolio A"
+    );
+
+    $("correlation-b-panel").hidden = !comparison;
+
+    if (comparison) {
+        renderComparison(data, comparison, seed);
+
+        renderCorrelation(
+            comparison.analysis,
+            "correlation-b",
+            "Portfolio B"
+        );
+
+    } else {
+        $("correlation-b").replaceChildren();
+    }
+
     drawChart(currentBands, comparisonBands);
 }
 
+// Determine the color of a correlation cell.
+
+function correlationClass(value) {
+    if (!Number.isFinite(value)) {
+        return "corr-undefined";
+    }
+
+    if (value <= -0.70) {
+        return "corr-negative-strong";
+    }
+
+    if (value < -0.30) {
+        return "corr-negative";
+    }
+
+    if (value >= 0.70) {
+        return "corr-positive-strong";
+    }
+
+    if (value > 0.30) {
+        return "corr-positive";
+    }
+
+    return "corr-neutral";
+}
+
+
+// Render the asset correlation matrix.
+
+function renderCorrelation(analysis, target, label) {
+    const tickers = analysis.tickers;
+
+    const matrix = new Map(
+        analysis.correlation.map(
+            row => [row.ticker, row]
+        )
+    );
+
+    const caption = element(
+        "caption",
+        label + " | Historical correlation"
+    );
+
+    const head = element("thead");
+    const headerRow = element("tr");
+
+    headerRow.append(element("td"));
+
+    // Create column headers.
+
+    for (const ticker of tickers) {
+        const heading = element("th", ticker);
+
+        heading.scope = "col";
+
+        headerRow.append(heading);
+    }
+
+    head.append(headerRow);
+
+    const body = element("tbody");
+
+    // Create each row of the correlation matrix.
+
+    for (const ticker of tickers) {
+        const row = element("tr");
+
+        const heading = element("th", ticker);
+
+        heading.scope = "row";
+
+        row.append(heading);
+
+        for (const column of tickers) {
+            const value = matrix.get(ticker)?.[column];
+
+            const text = Number.isFinite(value)
+                ? Math.abs(value) < .005
+                    ? "0.00"
+                    : value.toFixed(2)
+                : "N/A";
+
+            const cell = element(
+                "td",
+                text,
+                correlationClass(value)
+            );
+
+            cell.title =
+                `${ticker} / ${column}: ` +
+                (
+                    Number.isFinite(value)
+                        ? value.toFixed(4)
+                        : "Undefined correlation"
+                );
+
+            row.append(cell);
+        }
+
+        body.append(row);
+    }
+
+    $(target).replaceChildren(
+        caption,
+        head,
+        body
+    );
+}
 function renderComparison(a, b, seed) {
     const ar = a.simulation_risk, br = b.simulation_risk;
     const ap = a.analysis.portfolio_metrics, bp = b.analysis.portfolio_metrics;
@@ -471,7 +599,9 @@ function renderComparison(a, b, seed) {
         ["Annualized volatility", percent(ap.annualized_volatility), percent(bp.annualized_volatility)],
         ["Maximum drawdown", percent(ah.max_drawdown), percent(bh.max_drawdown)]
     ];
-    $("comparison-summary").textContent = `Shared random seed: ${seed}. Other result panels show Portfolio A.`;
+    $("comparison-summary").textContent =
+        `Shared random seed: ${seed}. ` +
+        "Main summary, historical risk and asset breakdown show Portfolio A.";
     $("comparison-table").replaceChildren(...rows.map(([label, first, second]) => {
         const row = element("tr");
         const heading = element("th", label);

@@ -160,6 +160,25 @@ Features include:
 Correlation is undefined for assets with constant returns.
 Historical correlations may change over time.
 
+### Correlation Heatmap
+
+The dashboard displays a color-coded correlation matrix
+that visualizes the historical relationships between assets.
+
+- Green: Positive correlation
+- Terracotta: Negative correlation
+- Neutral: Correlation near zero
+- N/A: Undefined correlation
+
+Correlation values range from -1 to +1.
+
+In portfolio comparison mode, both portfolios display
+individual correlation matrices calculated using
+the same overlapping historical observations.
+
+Historical correlations may change over time and do not
+guarantee future diversification benefits.
+
 ## Monte Carlo Simulation Engine
 
 The simulation engine generates potential future portfolio
