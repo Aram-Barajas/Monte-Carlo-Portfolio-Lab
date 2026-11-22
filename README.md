@@ -170,7 +170,7 @@ python -m pytest -v
 JavaScript export tests:
 
 ```bash
-node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs
+node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs
 ```
 
 Node.js is required for frontend testing only, not for
@@ -290,6 +290,19 @@ and do not guarantee future results.
 
 ## Historical Portfolio Backtesting
 
+Select **Run historical backtest** in the dashboard to replay
+Portfolio A using the selected historical dates and initial
+investment.
+
+The dashboard displays historical value, drawdown, and summary
+metrics separately from the Monte Carlo projections.
+
+Portfolio B, monthly contributions, horizon, and simulation count
+do not affect backtesting.
+
+The results show the submitted allocation and actual overlapping
+historical dates.
+
 The backtesting engine replays adjusted historical closing prices
 for a fixed portfolio allocation, assuming daily rebalancing.
 
@@ -335,6 +348,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/portfolio` | Portfolio metrics, covariance, correlation and risk |
 | POST | `/api/simulate` | Monte Carlo percentile bands and terminal risk |
 | POST | `/api/compare` | Compare two allocations under shared assumptions |
+| POST | `/api/backtest` | Replay a portfolio over historical market prices |
 
 Historical dates use YYYY-MM-DD, with an exclusive end date.
 Portfolio weights are fractional allocations. Totals between

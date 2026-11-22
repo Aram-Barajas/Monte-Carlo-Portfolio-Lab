@@ -285,6 +285,35 @@ class MarketCacheTests(unittest.TestCase):
             )
 
             download.assert_called_once()
+    def test_default_downloader_is_called_and_cached(self):
+        fake_yfinance = Mock()
+
+        fake_yfinance.download.return_value = pd.concat(
+            {"Close": self.prices},
+            axis=1
+        )
+
+        with patch.dict(
+            "sys.modules",
+            {"yfinance": fake_yfinance}
+        ), patch(
+            "backend.market_data._price_cache",
+            self.cache
+        ):
+            for _ in range(2):
+                result = fetch_historical_prices(
+                    ["NVDA", "VTI"],
+                    self.start,
+                    self.end
+                )
+
+                pd.testing.assert_frame_equal(
+                    result,
+                    self.prices,
+                    check_freq=False
+                )
+
+        fake_yfinance.download.assert_called_once()
 
 
 if __name__ == "__main__":

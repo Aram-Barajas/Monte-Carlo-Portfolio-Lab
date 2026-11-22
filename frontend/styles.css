@@ -758,3 +758,56 @@ button {
 #chart-value-b {
     color: var(--comparison-line);
 }
+/* Historical backtesting */
+
+.backtest-controls {
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
+}
+
+#run-backtest {
+    background: transparent;
+    color: var(--green);
+    border: 1px solid var(--green);
+}
+
+    #run-backtest:hover {
+        background: var(--field);
+    }
+
+#backtest-status.error {
+    color: var(--error);
+}
+
+#backtest-results {
+    margin-top: 1.5rem;
+}
+
+.backtest-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+    .backtest-chart line {
+        stroke: var(--border);
+    }
+
+    .backtest-chart text {
+        fill: var(--muted);
+        font-size: 12px;
+    }
+
+    .backtest-chart polyline {
+        fill: none;
+        stroke-width: 2;
+        stroke-linejoin: round;
+    }
+
+.backtest-value {
+    stroke: var(--chart-median);
+}
+
+.backtest-drawdown {
+    stroke: var(--error);
+}

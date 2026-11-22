@@ -108,3 +108,31 @@ class DashboardTests(unittest.TestCase):
             "function attachChartInspection",
             script.text
         )
+    def test_backtest_dashboard_loads(self):
+        page = self.client.get("/").text
+
+        script = self.client.get("/static/backtest.js")
+
+        for element in (
+            "run-backtest",
+            "backtest-results",
+            "backtest-metrics",
+            "backtest-value-chart",
+            "backtest-drawdown-chart"
+        ):
+            self.assertIn(
+                f'id="{element}"',
+                page
+            )
+
+        self.assertIn(
+            'src="/static/backtest.js"',
+            page
+        )
+
+        self.assertEqual(script.status_code, 200)
+
+        self.assertIn(
+            "/api/backtest",
+            script.text
+        )
