@@ -118,3 +118,25 @@ are expressed in currency units.
 Simulated losses account for recurring contributions.
 These metrics are historical or model-based estimates
 and do not guarantee future results.
+
+## REST API
+
+Start the FastAPI server from the repository root:
+
+```bash
+python -m uvicorn backend.api:app --reload
+```
+
+Interactive API documentation: http://127.0.0.1:8000/docs
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/health` | Server health check |
+| POST | `/api/market-data` | Adjusted historical prices |
+| POST | `/api/portfolio` | Portfolio metrics, covariance, correlation and risk |
+| POST | `/api/simulate` | Monte Carlo percentile bands and terminal risk |
+
+Historical dates use YYYY-MM-DD, with an exclusive end date.
+Portfolio weights are fractional allocations that must sum to 1.0.
+The API limits historical ranges, asset counts and simulation sizes.
+API tests mock market data downloads, so they do not require live prices.
