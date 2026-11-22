@@ -57,3 +57,54 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("function renderCorrelation", script)
         self.assertIn("corr-undefined", css)
         self.assertIn("corr-positive-strong", css)
+
+    def test_csv_export_markup(self):
+
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn(
+            'id="export-format"',
+            response.text
+        )
+
+        self.assertIn(
+            'id="export-download"',
+            response.text
+        )
+
+        self.assertIn(
+            "/static/export.js",
+            response.text
+        )
+
+    def test_csv_export_script(self):
+
+        response = self.client.get("/static/export.js")
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn(
+            "function buildCsvRows",
+            response.text
+        )
+
+        self.assertIn(
+            "function downloadSimulationCsv",
+            response.text
+        )
+    def test_chart_inspection_loads(self):
+        page = self.client.get("/").text
+        script = self.client.get("/static/chart-tools.js")
+
+        self.assertIn('id="chart-day"', page)
+        self.assertIn('id="chart-value-median"', page)
+        self.assertIn('id="chart-value-b-row"', page)
+
+        self.assertEqual(script.status_code, 200)
+
+        self.assertIn(
+            "function attachChartInspection",
+            script.text
+        )

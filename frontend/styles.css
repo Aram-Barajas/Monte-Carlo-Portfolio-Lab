@@ -683,3 +683,78 @@ button {
         width: 100%;
     }
 }
+
+/* Interactive chart inspection */
+
+#chart {
+    cursor: crosshair;
+}
+
+    #chart line.chart-guide {
+        stroke: var(--muted);
+        stroke-width: 1;
+        stroke-dasharray: 4 4;
+        pointer-events: none;
+    }
+
+    #chart .chart-marker {
+        fill: var(--chart-median);
+        stroke: var(--white);
+        stroke-width: 2;
+        pointer-events: none;
+    }
+
+    #chart .chart-marker-b {
+        fill: var(--comparison-line);
+    }
+
+.chart-inspection {
+    padding: 1rem;
+    margin: 1rem 0;
+    background: var(--field);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+#chart-day {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    accent-color: var(--green);
+    cursor: pointer;
+    min-height: 28px;
+}
+
+.chart-day-label {
+    font-weight: 700;
+    color: var(--green);
+    font-size: .85rem;
+}
+
+.chart-values {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: .8rem;
+    margin: 0;
+}
+
+    .chart-values div {
+        padding-top: .5rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .chart-values dt {
+        font-size: .74rem;
+        color: var(--muted);
+    }
+
+    .chart-values dd {
+        margin: .25rem 0 0;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+    }
+
+#chart-value-b {
+    color: var(--comparison-line);
+}
