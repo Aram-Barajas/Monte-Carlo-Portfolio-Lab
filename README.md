@@ -170,7 +170,7 @@ python -m pytest -v
 JavaScript export tests:
 
 ```bash
-node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs
+node --test tnode --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjsests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs
 ```
 
 Node.js is required for frontend testing only, not for
@@ -331,6 +331,39 @@ Historical performance does not guarantee future results.
 The engine is available through POST /api/backtest and the
 interactive API documentation.
 
+## Portfolio Stress Testing
+
+Select **Run portfolio stress test** to evaluate Portfolio A
+under instantaneous hypothetical price shocks.
+
+The dashboard uses the initial investment and portfolio
+allocation, not historical dates, contributions or simulation
+settings.
+
+Default scenarios apply uniform declines of 10%, 20%, 35%
+and 50%.
+
+Enable custom asset shocks to enter one percentage change
+per ticker between -100% and +100%.
+
+Supported results include:
+
+- Portfolio percentage change
+- Estimated dollar gain or loss
+- Ending portfolio value
+- Individual asset contributions
+
+The REST API accepts fractional weights and shocks and
+supports up to 10 custom scenarios in a single request.
+
+No historical market data download is required.
+
+Uniform shocks cannot distinguish between portfolio allocations.
+Asset-specific shocks can illustrate differences in exposure.
+
+These scenarios are not forecasts or estimates of the
+probability of a market crash.
+
 ## REST API
 
 Start the FastAPI server from the repository root:
@@ -349,6 +382,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/simulate` | Monte Carlo percentile bands and terminal risk |
 | POST | `/api/compare` | Compare two allocations under shared assumptions |
 | POST | `/api/backtest` | Replay a portfolio over historical market prices |
+| POST | `/api/stress-test` | Evaluate hypothetical asset price shocks |
 
 Historical dates use YYYY-MM-DD, with an exclusive end date.
 Portfolio weights are fractional allocations. Totals between
