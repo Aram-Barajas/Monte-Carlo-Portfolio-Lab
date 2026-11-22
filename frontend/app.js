@@ -66,6 +66,15 @@ $("theme-toggle").addEventListener("click", () => {
 
 // Collect and validate form inputs.
 
+const ALLOCATION_ROUNDING_TOLERANCE = 0.0005;
+
+function allocationTotal(weights) {
+    return Object.values(weights).reduce(
+        (sum, weight) => sum + weight,
+        0
+    );
+}
+
 function getAllocation(id) {
     const entries = $(id).value.trim()
         .split(/\n+/)
@@ -107,9 +116,17 @@ function getAllocation(id) {
         0
     );
 
-    if (Math.abs(total - 1) > 1e-8) {
+    if (
+        Math.abs(total - 1) >
+        ALLOCATION_ROUNDING_TOLERANCE + 1e-12
+    ) {
+        const portfolio = id === "allocation-b"
+            ? "B"
+            : "A";
+
         throw new Error(
-            "Portfolio allocation must total 100%."
+            `Portfolio ${portfolio} totals ${(total * 100).toFixed(2)}%. ` +
+            "Enter a total between 99.95% and 100.05%."
         );
     }
 
@@ -490,6 +507,19 @@ $("simulation-form").addEventListener(
                 payload.comparison_weights = getAllocation("allocation-b").weights;
             }
 
+            const normalized = [];
+
+            if (Math.abs(allocationTotal(payload.weights) - 1) > 1e-8) {
+                normalized.push("Portfolio A");
+            }
+
+            if (
+                comparing &&
+                Math.abs(allocationTotal(payload.comparison_weights) - 1) > 1e-8
+            ) {
+                normalized.push("Portfolio B");
+            }
+
             $("run").disabled = true;
 
             $("status").textContent =
@@ -524,7 +554,12 @@ $("simulation-form").addEventListener(
             }
 
             $("status").textContent =
-                "Simulation complete. Results reflect your last submitted settings.";
+                "Simulation complete. Results reflect your last submitted settings." +
+                (
+                    normalized.length
+                        ? ` ${normalized.join(" and ")} normalized to 100%.`
+                        : ""
+                );
 
         } catch (error) {
             $("status").className = "error";
