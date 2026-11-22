@@ -7,8 +7,15 @@ import numpy as np
 import pandas as pd
 
 
+TICKER_ALIASES = {
+    "BRK.A": "BRK-A",
+    "BRK.B": "BRK-B",
+    "BF.B": "BF-B"
+}
+
+
 def normalize_tickers(tickers):
-    """Accept one ticker or a list of unique ticker symbols."""
+    """Accept and normalize unique ticker symbols."""
 
     if isinstance(tickers, str):
         tickers = [tickers]
@@ -19,10 +26,13 @@ def normalize_tickers(tickers):
     symbols = []
 
     for ticker in tickers:
+
         if not isinstance(ticker, str):
             raise ValueError("Ticker symbols must be strings.")
 
         symbol = ticker.strip().upper()
+
+        symbol = TICKER_ALIASES.get(symbol, symbol)
 
         if not re.fullmatch(r"[A-Z0-9^][A-Z0-9.\-=^]*", symbol):
             raise ValueError(f"Invalid ticker symbol: {ticker!r}")

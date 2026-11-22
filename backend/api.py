@@ -15,8 +15,9 @@ from .market_data import (
     fetch_historical_prices, fetch_daily_returns
 )
 from .portfolio_metrics import (
-    calculate_asset_metrics, calculate_portfolio_metrics,
-    validate_weights
+    calculate_asset_metrics,
+    calculate_portfolio_metrics,
+    normalize_rounded_weights
 )
 from .covariance import (
     calculate_covariance_matrix, calculate_correlation_matrix
@@ -86,7 +87,10 @@ class PortfolioRequest(MarketRequest):
             zip(symbols, self.weights.values())
         )
 
-        validate_weights(self.weights, self.tickers)
+        self.weights = normalize_rounded_weights(
+         self.weights,
+         self.tickers
+).to_dict()
 
         return self
 
@@ -132,7 +136,10 @@ class ComparisonRequest(SimulationRequest):
     def validate_comparison(self):
         symbols = normalize_tickers(list(self.comparison_weights))
         self.comparison_weights = dict(zip(symbols, self.comparison_weights.values()))
-        validate_weights(self.comparison_weights, symbols)
+        self.comparison_weights = normalize_rounded_weights(
+            self.comparison_weights,
+            symbols
+).to_dict()
 
         combined = set(self.tickers) | set(symbols)
         if len(combined) > 20 or any(len(ticker) > 20 for ticker in combined):

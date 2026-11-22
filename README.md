@@ -36,8 +36,7 @@ The dashboard supports both light and dark themes.
 
 | Setting | Description |
 | --- | --- |
-| Portfolio allocation (%) | Enter each ticker and its allocation percentage. All percentages must total 100%. |
-| History start | Beginning of the historical market data collection. |
+| Portfolio allocation (%) | Enter each ticker and its allocation percentage. Totals between 99.95% and 100.05% are automatically normalized to 100%. || History start | Beginning of the historical market data collection. |
 | History end | End of the historical market data collection (exclusive). |
 | Initial investment ($) | Starting amount invested in the portfolio. |
 | Monthly contribution ($) | Additional money invested approximately every month. |
@@ -80,7 +79,8 @@ historical price data.
 ### Comparing Portfolios
 
 Enable **Compare with a second portfolio** to compare Portfolio A with
-Portfolio B. Enter a separate allocation that also totals 100%. Both
+Portfolio B. Portfolio B. Enter a separate allocation using the same
+rounding tolerance as Portfolio A. Both
 portfolios use the same initial investment, contributions, trading horizon,
 historical date range, overlapping historical observations and simulated
 market shocks. The comparison table shows risk and return metrics side by
@@ -100,14 +100,13 @@ NVDA, 25
 AMZN, 15
 ```
 
-Allocations must total 100%.
+Aim for allocations totaling 100%. Small rounding differences
+are automatically corrected.
 
-Use Yahoo Finance ticker symbols, such as `BRK-B` instead
-of `BRK.B`. If brokerage percentages total 99.99% due to
-rounding, adjust the rounding difference to reach 100%.
+Common ticker aliases, such as `BRK.B`, are converted to
+their corresponding Yahoo Finance symbols automatically.
 
-Simulation results are hypothetical and do not guarantee
-future investment performance.
+See the Allocation Normalization section for more details.
 
 ## Running Tests
 
@@ -227,6 +226,28 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/compare` | Compare two allocations under shared assumptions |
 
 Historical dates use YYYY-MM-DD, with an exclusive end date.
-Portfolio weights are fractional allocations that must sum to 1.0.
+Portfolio weights are fractional allocations. Totals between
+0.9995 and 1.0005 are normalized to 1.0 before calculations.
 The API limits historical ranges, asset counts and simulation sizes.
 API tests mock market data downloads, so they do not require live prices.
+
+## Allocation Normalization
+
+The application accepts portfolio allocation totals between
+99.95% and 100.05% to accommodate rounding differences from
+brokerage platforms.
+
+Allocations within this range are automatically normalized
+to 100%, preserving their relative proportions.
+
+Invalid allocations, negative weights, duplicate assets,
+and non-finite values are rejected.
+
+Common ticker aliases are automatically converted:
+
+- BRK.A to BRK-A
+- BRK.B to BRK-B
+- BF.B to BF-B
+
+These improvements apply to individual portfolio simulations
+and portfolio comparisons.

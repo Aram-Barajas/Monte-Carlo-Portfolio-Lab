@@ -8,7 +8,7 @@ import pandas as pd
 
 
 TRADING_DAYS = 252
-
+ALLOCATION_ROUNDING_TOLERANCE = 0.0005
 
 def validate_returns(returns):
     """Validate historical fractional returns."""
@@ -46,16 +46,20 @@ def validate_returns(returns):
     return values
 
 
-def validate_weights(weights, tickers):
-    """Validate portfolio allocation weights."""
+def _ordered_weights(weights, tickers):
+    """Validate and align portfolio weights."""
 
-    if not isinstance(weights, Mapping) or set(weights) != set(tickers):
+    if (
+        not isinstance(weights, Mapping)
+        or set(weights) != set(tickers)
+    ):
         raise ValueError(
             "Weights must match the return data's ticker symbols."
         )
 
     if any(
-        isinstance(weight, bool) or not isinstance(weight, Real)
+        isinstance(weight, bool)
+        or not isinstance(weight, Real)
         for weight in weights.values()
     ):
         raise ValueError("Weights must be numeric.")
@@ -65,10 +69,21 @@ def validate_weights(weights, tickers):
         dtype=float
     ).reindex(tickers)
 
-    if not np.isfinite(ordered.to_numpy()).all() or (ordered < 0).any():
+    if (
+        not np.isfinite(ordered.to_numpy()).all()
+        or (ordered < 0).any()
+    ):
         raise ValueError(
             "Weights must be finite and nonnegative."
         )
+
+    return ordered
+
+
+def validate_weights(weights, tickers):
+    """Strict validation for financial calculations."""
+
+    ordered = _ordered_weights(weights, tickers)
 
     if not np.isclose(
         ordered.sum(),
@@ -81,6 +96,27 @@ def validate_weights(weights, tickers):
         )
 
     return ordered
+
+
+def normalize_rounded_weights(weights, tickers):
+    """Correct small portfolio rounding differences."""
+
+    ordered = _ordered_weights(weights, tickers)
+
+    total = ordered.sum()
+
+    if not np.isclose(
+        total,
+        1.0,
+        rtol=0,
+        atol=ALLOCATION_ROUNDING_TOLERANCE + 1e-12
+    ):
+        raise ValueError(
+            f"Portfolio allocation totals {total * 100:.4f}%. "
+            "Enter a total between 99.95% and 100.05%."
+        )
+
+    return ordered / total
 
 
 def validate_periods_per_year(periods_per_year):
