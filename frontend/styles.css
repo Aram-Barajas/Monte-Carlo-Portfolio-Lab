@@ -1,0 +1,515 @@
+:root {
+    color-scheme: light;
+    --paper: #e7dccd;
+    --white: #faf6ee;
+    --ink: #302820;
+    --muted: #62584c;
+    --green: #285b43;
+    --border: #cec0ad;
+    --field: #fffaf3;
+    --field-border: #a99b88;
+    --header: #49372a;
+    --header-text: #fff5e6;
+    --header-muted: #dfd1bf;
+    --button: #285b43;
+    --button-hover: #19432f;
+    --error: #a13227;
+    --focus: #92651b;
+    --chart-outer: #d6e4d1;
+    --chart-inner: #8eb398;
+    --chart-median: #245b45;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+}
+
+    /* Dark mode */
+
+    :root[data-theme="dark"] {
+        color-scheme: dark;
+        --paper: #2b251f;
+        --white: #352e27;
+        --ink: #f2e8da;
+        --muted: #c5b7a5;
+        --green: #9bc9a5;
+        --border: #5c4f41;
+        --field: #241e19;
+        --field-border: #81705e;
+        --header: #221b16;
+        --header-text: #f2e8da;
+        --header-muted: #c9bba7;
+        --button: #326b50;
+        --button-hover: #24543f;
+        --error: #ffad9d;
+        --focus: #edc777;
+        --chart-outer: #40594b;
+        --chart-inner: #72987a;
+        --chart-median: #d4f0d0;
+    }
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* Header */
+
+.masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    background: var(--green);
+    color: white;
+    padding: 1rem max(5vw, 1rem);
+    font-size: .85rem;
+}
+
+    .masthead strong {
+        letter-spacing: .12em;
+    }
+
+    .masthead span {
+        color: #d3e4d5;
+    }
+
+    .masthead a {
+        color: white;
+        text-underline-offset: 4px;
+    }
+
+/* Page layout */
+
+main {
+    max-width: 1440px;
+    padding: 2.5rem 5vw;
+    margin: auto;
+}
+
+.intro {
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.2rem;
+}
+
+h1, h2, p {
+    margin-top: 0;
+}
+
+h1 {
+    font: 500 clamp(2.2rem, 5vw, 3.8rem)/1.05 Georgia, serif;
+    letter-spacing: -.035em;
+    margin-bottom: .7rem;
+}
+
+h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.intro p:last-child,
+.muted,
+small,
+footer {
+    color: var(--muted);
+}
+
+.eyebrow {
+    font-size: .73rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    color: var(--green);
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.panel {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    min-width: 0;
+}
+
+/* Form controls */
+
+label {
+    display: block;
+    font-size: .82rem;
+    font-weight: 600;
+}
+
+input, select, textarea, button {
+    font: inherit;
+}
+
+input, select, textarea {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #b9c5ba;
+    background: #fff;
+    border-radius: 4px;
+    color: var(--ink);
+    padding: .65rem;
+    margin-top: .35rem;
+}
+
+textarea {
+    resize: vertical;
+    font-family: monospace;
+}
+
+small {
+    display: block;
+    margin: .35rem 0 1rem;
+    line-height: 1.5;
+}
+
+.fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem .7rem;
+}
+
+    .fields label:has(input[type="date"]) {
+        grid-column: 1 / -1;
+    }
+
+button {
+    width: 100%;
+    margin-top: 1.3rem;
+    background: var(--green);
+    color: white;
+    border: 0;
+    border-radius: 4px;
+    padding: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+    button:hover {
+        background: #184433;
+    }
+
+    button:disabled {
+        opacity: .65;
+        cursor: wait;
+    }
+
+:focus-visible {
+    outline: 3px solid #9a7417;
+    outline-offset: 3px;
+}
+
+#status {
+    font-size: .83rem;
+    line-height: 1.5;
+    margin: .8rem 0 0;
+    overflow-wrap: anywhere;
+}
+
+    #status.error {
+        color: #a13227;
+    }
+
+/* Simulation results */
+
+.empty {
+    padding: 4rem 2rem;
+    border-top: 4px solid var(--green);
+}
+
+    .empty h2 {
+        font: 500 2rem Georgia, serif;
+    }
+
+.metrics, .detail-grid {
+    display: grid;
+    gap: .8rem;
+    margin-bottom: 1rem;
+}
+
+.metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metric {
+    border-top: 3px solid var(--green);
+}
+
+    .metric span {
+        color: var(--muted);
+        font-size: .82rem;
+    }
+
+    .metric strong {
+        display: block;
+        font: 500 clamp(1.3rem, 2.5vw, 1.9rem) Georgia, serif;
+        margin-top: .4rem;
+        overflow-wrap: anywhere;
+    }
+
+/* Chart */
+
+.chart-panel {
+    margin-bottom: 1rem;
+}
+
+#chart {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem 1rem;
+    font-size: .75rem;
+    margin: 1rem 0;
+}
+
+    .legend i {
+        display: inline-block;
+        width: 14px;
+        height: 10px;
+        margin-right: 5px;
+    }
+
+.outer {
+    background: #d9e8da;
+}
+
+.inner {
+    background: #91b59c;
+}
+
+.median {
+    background: var(--green);
+}
+
+.muted {
+    font-size: .83rem;
+    line-height: 1.5;
+}
+
+/* Analytics and tables */
+
+.detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+dl {
+    margin: 0;
+}
+
+    dl div {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        border-top: 1px solid var(--border);
+        padding: .65rem 0;
+        font-size: .85rem;
+    }
+
+dt {
+    color: var(--muted);
+}
+
+dd {
+    margin: 0;
+    font-weight: 600;
+    text-align: right;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: .85rem;
+    white-space: nowrap;
+}
+
+th, td {
+    text-align: right;
+    padding: .7rem;
+    border-bottom: 1px solid var(--border);
+}
+
+    th:first-child, td:first-child {
+        text-align: left;
+    }
+
+footer {
+    margin-top: 2rem;
+    font-size: .8rem;
+    line-height: 1.5;
+}
+
+/* Responsive design */
+
+@media (max-width: 850px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    main {
+        padding: 1.5rem 1rem;
+    }
+
+    .masthead span {
+        display: none;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .panel {
+        padding: 1rem;
+    }
+
+    .metrics {
+        gap: .5rem;
+    }
+}
+
+/* Updated branding and theme controls */
+
+.masthead {
+    background: var(--header);
+    color: var(--header-text);
+    flex-wrap: wrap;
+}
+
+.brand {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+}
+
+.masthead span {
+    display: block;
+    color: var(--header-muted);
+    font-size: .78rem;
+}
+
+.masthead a {
+    color: var(--header-text);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .8rem;
+}
+
+#theme-toggle {
+    width: auto;
+    margin: 0;
+    padding: .5rem .75rem;
+    color: var(--header-text);
+    background: transparent;
+    border: 1px solid var(--header-muted);
+    border-radius: 4px;
+    font-size: .8rem;
+    cursor: pointer;
+}
+
+    #theme-toggle:hover {
+        background: var(--button);
+    }
+
+/* Theme-aware form elements */
+
+input,
+select,
+textarea {
+    background: var(--field);
+    color: var(--ink);
+    border-color: var(--field-border);
+}
+
+button {
+    background: var(--button);
+    color: white;
+}
+
+    button:hover {
+        background: var(--button-hover);
+    }
+
+:focus-visible {
+    outline-color: var(--focus);
+}
+
+#status.error {
+    color: var(--error);
+}
+
+/* Theme-aware chart and legend */
+
+.outer {
+    background: var(--chart-outer);
+}
+
+.inner {
+    background: var(--chart-inner);
+}
+
+.median {
+    background: var(--chart-median);
+}
+
+#chart line {
+    stroke: var(--border);
+}
+
+#chart text {
+    fill: var(--muted);
+}
+
+#chart polygon:first-of-type {
+    fill: var(--chart-outer);
+}
+
+#chart polygon:nth-of-type(2) {
+    fill: var(--chart-inner);
+}
+
+#chart polyline {
+    stroke: var(--chart-median);
+}
+
+/* Mobile header */
+
+@media (max-width: 520px) {
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .masthead span {
+        display: block;
+    }
+}
