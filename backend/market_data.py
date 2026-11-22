@@ -163,6 +163,8 @@ def _download_historical_prices(
     if downloader is None:
         import yfinance as yf
 
+        downloader = yf.download
+
     try:
         data = downloader(
             tickers=symbols,
