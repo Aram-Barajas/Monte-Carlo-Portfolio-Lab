@@ -501,6 +501,38 @@ button {
     stroke: var(--chart-median);
 }
 
+/* Portfolio comparison */
+
+:root {
+    --comparison-line: #986127;
+}
+
+    :root[data-theme="dark"] {
+        --comparison-line: #f4bd73;
+    }
+
+.compare-switch {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin: 1rem 0;
+}
+
+    .compare-switch input {
+        width: auto;
+        margin: 0;
+        accent-color: var(--button);
+    }
+
+.comparison-color {
+    background: var(--comparison-line);
+}
+
+#chart polyline.comparison-line {
+    stroke: var(--comparison-line);
+    stroke-dasharray: 6 4;
+}
+
 /* Mobile header */
 
 @media (max-width: 520px) {

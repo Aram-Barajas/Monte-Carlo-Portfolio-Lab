@@ -29,6 +29,7 @@
     <main>
         <div class="intro">
             <p class="eyebrow">INVESTMENT RESEARCH / 01</p>
+
             <h1>Explore your portfolio.</h1>
 
             <p>
@@ -43,7 +44,7 @@
 
                 <form id="simulation-form">
                     <label for="allocation">
-                        Portfolio allocation (%)
+                        Portfolio A allocation (%)
                     </label>
 
                     <textarea id="allocation"
@@ -57,6 +58,24 @@ AMZN, 15</textarea>
                         One ticker and percentage per line.
                         Total must equal 100%.
                     </small>
+
+                    <label class="compare-switch">
+                        <input id="compare-enabled" type="checkbox">
+                        Compare with a second portfolio
+                    </label>
+
+                    <div id="comparison-input" hidden>
+                        <label for="allocation-b">
+                            Portfolio B allocation (%)
+                        </label>
+
+                        <textarea id="allocation-b"
+                                  rows="3">VTI, 100</textarea>
+
+                        <small>
+                            Portfolio A and B share all simulation settings.
+                        </small>
+                    </div>
 
                     <div class="fields">
                         <label>
@@ -123,7 +142,7 @@ AMZN, 15</textarea>
                     </div>
 
                     <button id="run" type="submit">
-                        Run simulation →
+                        Run simulation
                     </button>
                 </form>
 
@@ -133,6 +152,7 @@ AMZN, 15</textarea>
             </aside>
 
             <section class="results" aria-label="Simulation results">
+
                 <div id="empty" class="panel empty">
                     <p class="eyebrow">
                         YOUR RESEARCH WORKSPACE
@@ -147,6 +167,7 @@ AMZN, 15</textarea>
                 </div>
 
                 <div id="results" hidden>
+
                     <p id="summary" class="eyebrow"></p>
 
                     <div class="metrics" id="metrics"></div>
@@ -166,15 +187,23 @@ AMZN, 15</textarea>
 
                         <div class="legend">
                             <span>
-                                <i class="outer"></i>5th - 95th percentile
+                                <i class="outer"></i>
+                                5th - 95th percentile
                             </span>
 
                             <span>
-                                <i class="inner"></i>25th - 5th percentile
+                                <i class="inner"></i>
+                                25th - 75th percentile
                             </span>
 
                             <span>
-                                <i class="median"></i>Median
+                                <i class="median"></i>
+                                <span id="median-label">Median</span>
+                            </span>
+
+                            <span id="comparison-legend" hidden>
+                                <i class="comparison-color"></i>
+                                Portfolio B median
                             </span>
                         </div>
 
@@ -183,6 +212,37 @@ AMZN, 15</textarea>
                             distribution of simulated values,
                             not guaranteed limits.
                         </p>
+                    </section>
+
+                    <section id="comparison-results"
+                             class="panel chart-panel"
+                             hidden>
+
+                        <h2>Portfolio comparison</h2>
+
+                        <p class="muted">
+                            Both portfolios use the same overlapping
+                            historical dates and simulated market shocks.
+
+                            Shaded bands show Portfolio A only.
+                        </p>
+
+                        <p id="comparison-summary"
+                           class="muted"></p>
+
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Metric</th>
+                                        <th scope="col">Portfolio A</th>
+                                        <th scope="col">Portfolio B</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="comparison-table"></tbody>
+                            </table>
+                        </div>
                     </section>
 
                     <div class="detail-grid">

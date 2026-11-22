@@ -11,6 +11,14 @@ const percent = value => `${(value * 100).toFixed(2)}%`;
 const number = id => Number($(id).value);
 
 let currentBands = null;
+let comparisonBands = null;
+
+$("compare-enabled").addEventListener("change", () => {
+    const enabled = $("compare-enabled").checked;
+    $("comparison-input").hidden = !enabled;
+    $("allocation-b").required = enabled;
+    $("run").textContent = enabled ? "Compare portfolios" : "Run simulation";
+});
 
 // Light and dark mode
 
@@ -58,8 +66,8 @@ $("theme-toggle").addEventListener("click", () => {
 
 // Collect and validate form inputs.
 
-function getPayload() {
-    const entries = $("allocation").value.trim()
+function getAllocation(id) {
+    const entries = $(id).value.trim()
         .split(/\n+/)
         .map(line => {
             const parts = line.split(",")
@@ -105,6 +113,11 @@ function getPayload() {
         );
     }
 
+    return { tickers, weights: Object.fromEntries(entries) };
+}
+
+function getPayload() {
+    const allocation = getAllocation("allocation");
     if ($("start").value >= $("end").value) {
         throw new Error(
             "End date must be after start date."
@@ -112,8 +125,7 @@ function getPayload() {
     }
 
     return {
-        tickers,
-        weights: Object.fromEntries(entries),
+        ...allocation,
         start: $("start").value,
         end: $("end").value,
         initial_value: number("initial"),
@@ -175,7 +187,7 @@ function metrics(target, rows, cards = false) {
 
 // Draw the portfolio growth chart.
 
-function drawChart(bands) {
+function drawChart(bands, otherBands = null) {
     const chart = $("chart");
 
     chart.replaceChildren();
@@ -196,7 +208,8 @@ function drawChart(bands) {
 
     const max = Math.max(
         1,
-        ...bands.map(point => point.p95)
+        ...bands.map(point => point.p95),
+        ...(otherBands || []).map(point => point.median)
     );
 
     const x = day =>
@@ -284,6 +297,15 @@ function drawChart(bands) {
         "stroke-width": 2.5
     });
 
+    if (otherBands) {
+        svg("polyline", {
+            points: points(otherBands, "median"),
+            fill: "none",
+            class: "comparison-line",
+            "stroke-width": 2.5
+        });
+    }
+
     // Investment horizon labels.
 
     for (const fraction of [0, 0.5, 1]) {
@@ -300,7 +322,7 @@ function drawChart(bands) {
 
 // Render the API response.
 
-function render(data) {
+function render(data, comparison = null, seed = null) {
     const {
         analysis,
         simulation_risk: risk,
@@ -408,8 +430,38 @@ function render(data) {
     $("results").hidden = false;
 
     currentBands = percentiles;
+    comparisonBands = comparison ? comparison.percentiles : null;
+    $("comparison-results").hidden = !comparison;
+    $("comparison-legend").hidden = !comparison;
+    $("median-label").textContent = comparison ? "Portfolio A median" : "Median";
+    $("chart").setAttribute("aria-label", comparison
+        ? "Portfolio A percentile bands and both portfolio median trajectories"
+        : "Projected portfolio percentile bands");
+    if (comparison) renderComparison(data, comparison, seed);
+    drawChart(currentBands, comparisonBands);
+}
 
-    drawChart(currentBands);
+function renderComparison(a, b, seed) {
+    const ar = a.simulation_risk, br = b.simulation_risk;
+    const ap = a.analysis.portfolio_metrics, bp = b.analysis.portfolio_metrics;
+    const ah = a.analysis.historical_risk, bh = b.analysis.historical_risk;
+    const range = item => `${money(item.percentiles.at(-1).p05)} - ${money(item.percentiles.at(-1).p95)}`;
+    const rows = [
+        ["Median ending value", money(ar.median_ending_value), money(br.median_ending_value)],
+        ["5th-95th percentile at end", range(a), range(b)],
+        ["Probability of loss", percent(ar.probability_of_loss), percent(br.probability_of_loss)],
+        ["Annualized return (arithmetic)", percent(ap.annualized_return), percent(bp.annualized_return)],
+        ["Annualized volatility", percent(ap.annualized_volatility), percent(bp.annualized_volatility)],
+        ["Maximum drawdown", percent(ah.max_drawdown), percent(bh.max_drawdown)]
+    ];
+    $("comparison-summary").textContent = `Shared random seed: ${seed}. Other result panels show Portfolio A.`;
+    $("comparison-table").replaceChildren(...rows.map(([label, first, second]) => {
+        const row = element("tr");
+        const heading = element("th", label);
+        heading.scope = "row";
+        row.append(heading, element("td", first), element("td", second));
+        return row;
+    }));
 }
 
 
@@ -417,7 +469,7 @@ function render(data) {
 
 window.addEventListener("resize", () => {
     if (currentBands) {
-        drawChart(currentBands);
+        drawChart(currentBands, comparisonBands);
     }
 });
 
@@ -433,13 +485,17 @@ $("simulation-form").addEventListener(
 
         try {
             const payload = getPayload();
+            const comparing = $("compare-enabled").checked;
+            if (comparing) {
+                payload.comparison_weights = getAllocation("allocation-b").weights;
+            }
 
             $("run").disabled = true;
 
             $("status").textContent =
                 "Downloading market data and simulating outcomes...";
 
-            const response = await fetch("/api/simulate", {
+            const response = await fetch(comparing ? "/api/compare" : "/api/simulate", {
                 method: "POST",
 
                 headers: {
@@ -461,7 +517,11 @@ $("simulation-form").addEventListener(
                 );
             }
 
-            render(data);
+            if (comparing) {
+                render(data.portfolio_a, data.portfolio_b, data.seed);
+            } else {
+                render(data);
+            }
 
             $("status").textContent =
                 "Simulation complete. Results reflect your last submitted settings.";
