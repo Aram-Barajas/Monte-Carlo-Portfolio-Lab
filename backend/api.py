@@ -2,8 +2,12 @@
 
 import json
 from datetime import date
+from pathlib import Path
+from secrets import randbits
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 from .market_data import (
@@ -25,6 +29,14 @@ app = FastAPI(
     title="Monte Carlo Portfolio Lab",
     version="1.0.0"
 )
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def dashboard():
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 
 class MarketRequest(BaseModel):
@@ -110,6 +122,23 @@ class SimulationRequest(PortfolioRequest):
                 "Simulation is too large. Reduce paths, days, or assets."
             )
 
+        return self
+
+
+class ComparisonRequest(SimulationRequest):
+    comparison_weights: dict[str, float]
+
+    @model_validator(mode="after")
+    def validate_comparison(self):
+        symbols = normalize_tickers(list(self.comparison_weights))
+        self.comparison_weights = dict(zip(symbols, self.comparison_weights.values()))
+        validate_weights(self.comparison_weights, symbols)
+
+        combined = set(self.tickers) | set(symbols)
+        if len(combined) > 20 or any(len(ticker) > 20 for ticker in combined):
+            raise ValueError("Comparison supports up to 20 distinct tickers total.")
+        if self.num_simulations * self.trading_days * len(combined) > 20_000_000:
+            raise ValueError("Comparison is too large. Reduce paths, days, or assets.")
         return self
 
 
@@ -236,49 +265,59 @@ def portfolio(request: PortfolioRequest):
         ) from error
 
 
+def simulation_result(returns, request, shared_returns=None):
+    analysis = analyze_portfolio(returns, request)
+    simulation_returns = returns if shared_returns is None else shared_returns
+    weights = {ticker: request.weights.get(ticker, 0.0) for ticker in simulation_returns.columns}
+    paths = simulate_portfolio(
+        simulation_returns, weights,
+        initial_value=request.initial_value,
+        trading_days=request.trading_days,
+        num_simulations=request.num_simulations,
+        monthly_contribution=request.monthly_contribution,
+        seed=request.seed
+    )
+    return {
+        "analysis": analysis,
+        "trading_days": request.trading_days,
+        "num_simulations": request.num_simulations,
+        "percentiles": frame_records(summarize_simulations(paths), "trading_day"),
+        "simulation_risk": calculate_simulation_risk(
+            paths, request.monthly_contribution, request.confidence
+        ),
+        "ending_values": paths[:, -1].tolist()
+    }
+
+
 @app.post("/api/simulate")
 def simulate(request: SimulationRequest):
     returns = load_market_data(request)
-
     try:
-        analysis = analyze_portfolio(
-            returns,
-            request
-        )
-
-        paths = simulate_portfolio(
-            returns,
-            request.weights,
-            initial_value=request.initial_value,
-            trading_days=request.trading_days,
-            num_simulations=request.num_simulations,
-            monthly_contribution=request.monthly_contribution,
-            seed=request.seed
-        )
-
-        return {
-            "analysis": analysis,
-
-            "trading_days": request.trading_days,
-
-            "num_simulations": request.num_simulations,
-
-            "percentiles": frame_records(
-                summarize_simulations(paths),
-                "trading_day"
-            ),
-
-            "simulation_risk": calculate_simulation_risk(
-                paths,
-                request.monthly_contribution,
-                request.confidence
-            ),
-
-            "ending_values": paths[:, -1].tolist()
-        }
-
+        return simulation_result(returns, request)
     except ValueError as error:
-        raise HTTPException(
-            status_code=422,
-            detail=str(error)
-        ) from error
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.post("/api/compare")
+def compare(request: ComparisonRequest):
+    # Download a single aligned return history for the union of assets.
+    combined = list(dict.fromkeys(request.tickers + list(request.comparison_weights)))
+    market = MarketRequest(tickers=combined, start=request.start, end=request.end)
+    returns = load_market_data(market)
+
+    # Using the same seed and asset ordering gives both portfolios the same shocks.
+    seed = request.seed if request.seed is not None else randbits(32)
+    first = request.model_copy(update={"seed": seed})
+    second = request.model_copy(update={
+        "tickers": list(request.comparison_weights),
+        "weights": request.comparison_weights,
+        "seed": seed
+    })
+    try:
+        return {
+            "seed": seed,
+            "portfolio_a": simulation_result(returns[first.tickers], first, returns),
+            "portfolio_b": simulation_result(returns[second.tickers], second, returns)
+        }
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error

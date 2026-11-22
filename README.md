@@ -77,6 +77,19 @@ affect simulation results.
 All selected assets must have sufficient overlapping
 historical price data.
 
+### Comparing Portfolios
+
+Enable **Compare with a second portfolio** to compare Portfolio A with
+Portfolio B. Enter a separate allocation that also totals 100%. Both
+portfolios use the same initial investment, contributions, trading horizon,
+historical date range, overlapping historical observations and simulated
+market shocks. The comparison table shows risk and return metrics side by
+side. The chart shows Portfolio A's percentile bands and the median line
+for each portfolio. Other result panels show Portfolio A.
+
+Comparison uses up to 20 distinct tickers across both allocations and may
+require reducing the simulation count for large portfolios or long horizons.
+
 ### Example Portfolio
 
 Enter one ticker and allocation percentage per line:
@@ -211,6 +224,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/market-data` | Adjusted historical prices |
 | POST | `/api/portfolio` | Portfolio metrics, covariance, correlation and risk |
 | POST | `/api/simulate` | Monte Carlo percentile bands and terminal risk |
+| POST | `/api/compare` | Compare two allocations under shared assumptions |
 
 Historical dates use YYYY-MM-DD, with an exclusive end date.
 Portfolio weights are fractional allocations that must sum to 1.0.
