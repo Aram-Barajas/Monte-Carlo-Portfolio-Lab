@@ -5,7 +5,10 @@ from datetime import date
 
 import numpy as np
 import pandas as pd
+from .market_cache import MarketDataCache
 
+
+_price_cache = MarketDataCache()
 
 TICKER_ALIASES = {
     "BRK.A": "BRK-A",
@@ -117,10 +120,48 @@ def fetch_historical_prices(
     symbols = normalize_tickers(tickers)
     validate_date_range(start, end)
 
+    # Custom downloaders are isolated from the production cache.
+    if downloader is not None:
+        return _download_historical_prices(
+            symbols,
+            start,
+            end,
+            downloader=downloader
+        )
+
+    ordered_symbols = sorted(symbols)
+
+    key = (
+        tuple(ordered_symbols),
+        start,
+        end
+    )
+
+    prices = _price_cache.get(key)
+
+    if prices is None:
+        prices = _download_historical_prices(
+            ordered_symbols,
+            start,
+            end
+        )
+
+        _price_cache.put(key, prices)
+
+    return prices.loc[:, symbols].copy(deep=True)
+
+
+def _download_historical_prices(
+    symbols,
+    start,
+    end,
+    *,
+    downloader=None
+):
+    """Retrieve and validate prices before they enter the cache."""
+
     if downloader is None:
         import yfinance as yf
-
-        downloader = yf.download
 
     try:
         data = downloader(

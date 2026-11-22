@@ -14,6 +14,20 @@ Features include:
 - Missing data handling
 - Automated testing
 
+### Market Data Caching
+
+Historical adjusted closing prices are cached in server memory
+for 15 minutes, with up to 32 unique ticker sets and date ranges.
+
+Changing allocations, contributions, or simulation settings can
+reuse these prices without another market data download.
+
+Expired data is refreshed on the next request. The least recently
+used entries are evicted when the cache is full. Failed downloads
+are not cached, and callers receive independent copies of prices.
+
+The cache is local to each server process and resets on restart.
+
 ## Installation
 
 ```bash
@@ -36,7 +50,8 @@ The dashboard supports both light and dark themes.
 
 | Setting | Description |
 | --- | --- |
-| Portfolio allocation (%) | Enter each ticker and its allocation percentage. Totals between 99.95% and 100.05% are automatically normalized to 100%. || History start | Beginning of the historical market data collection. |
+| Portfolio allocation (%) | Enter each ticker and its allocation percentage. Totals between 99.95% and 100.05% are automatically normalized to 100%. |
+| History start | Beginning of the historical market data collection. |
 | History end | End of the historical market data collection (exclusive). |
 | Initial investment ($) | Starting amount invested in the portfolio. |
 | Monthly contribution ($) | Additional money invested approximately every month. |
@@ -155,7 +170,7 @@ python -m pytest -v
 JavaScript export tests:
 
 ```bash
-node --test tests/test_csv_export.cjs
+node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs
 ```
 
 Node.js is required for frontend testing only, not for

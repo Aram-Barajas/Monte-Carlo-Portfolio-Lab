@@ -54,5 +54,5 @@ jobs:
           node-version: '24'
           package-manager-cache: false
 
-      - name: Run frontend export tests
-        run: node --test tests/test_csv_export.cjs
+      - name: Run frontend tests
+        run: node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs
