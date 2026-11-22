@@ -1,0 +1,36 @@
+# Visual Studio
+.vs/
+.vscode/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Local databases
+*.sqlite3
+*.db
+
+# Logs
+*.log
+
+# Frontend
+node_modules/
