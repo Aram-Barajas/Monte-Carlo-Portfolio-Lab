@@ -26,6 +26,7 @@ from .monte_carlo import simulate_portfolio, summarize_simulations
 from .risk_metrics import calculate_historical_risk, calculate_simulation_risk
 from .backtest import backtest_portfolio
 from .stress_test import stress_test_portfolio
+from .benchmark import compare_benchmark
 
 
 app = FastAPI(
@@ -161,6 +162,29 @@ class BacktestRequest(PortfolioRequest):
         gt=0,
         le=1_000_000_000
     )
+
+class BenchmarkRequest(BacktestRequest):
+    benchmark: str
+
+    @model_validator(mode="after")
+    def validate_benchmark(self):
+
+        self.benchmark = normalize_tickers(
+            [self.benchmark]
+        )[0]
+
+        if len(self.benchmark) > 20:
+            raise ValueError(
+                "Ticker symbols must not exceed 20 characters."
+            )
+
+        if len(set(self.tickers + [self.benchmark])) > 20:
+            raise ValueError(
+                "Benchmark comparison supports up to "
+                "20 distinct tickers total."
+            )
+
+        return self
 
 class SimulationRequest(PortfolioRequest):
     initial_value: float = Field(
@@ -429,6 +453,63 @@ def backtest(request: BacktestRequest):
         }
 
     except ValueError as error:
+        raise HTTPException(
+            status_code=422,
+            detail=str(error)
+        ) from error
+
+@app.post("/api/benchmark")
+def benchmark(request: BenchmarkRequest):
+
+    combined = list(
+        dict.fromkeys(
+            request.tickers + [request.benchmark]
+        )
+    )
+
+    market = MarketRequest(
+        tickers=combined,
+        start=request.start,
+        end=request.end
+    )
+
+    prices = load_market_data(
+        market,
+        prices=True
+    )
+
+    try:
+
+        result = compare_benchmark(
+            prices,
+            request.weights,
+            request.benchmark,
+            initial_value=request.initial_value,
+            confidence=request.confidence,
+            annual_risk_free_rate=request.annual_risk_free_rate
+        )
+
+        for name in ("portfolio", "benchmark"):
+
+            trajectory = result[name]["trajectory"]
+
+            trajectory.index = trajectory.index.strftime(
+                "%Y-%m-%d"
+            )
+
+            result[name]["trajectory"] = frame_records(
+                trajectory,
+                "date"
+            )
+
+        return {
+            "tickers": request.tickers,
+            "weights": request.weights,
+            **result
+        }
+
+    except ValueError as error:
+
         raise HTTPException(
             status_code=422,
             detail=str(error)
