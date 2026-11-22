@@ -18,28 +18,11 @@ from .portfolio_metrics import (
 from .risk_metrics import calculate_historical_risk
 
 
-def backtest_portfolio(
-    prices,
-    weights,
-    initial_value=1000,
-    confidence=0.95,
-    annual_risk_free_rate=0.0
-):
-    """Backtest a daily rebalanced portfolio without cash flows."""
-
-    if (
-        isinstance(initial_value, bool)
-        or not isinstance(initial_value, Real)
-        or not np.isfinite(initial_value)
-        or initial_value <= 0
-    ):
-        raise ValueError(
-            "Initial value must be positive and finite."
-        )
+def align_backtest_prices(prices):
+    """Trim to common price dates and reject gaps within them."""
 
     prices = _validate_prices(prices)
 
-    # Find the overlapping historical period.
     start = max(
         prices[column].first_valid_index()
         for column in prices
@@ -61,6 +44,30 @@ def backtest_portfolio(
         raise ValueError(
             "Backtest price history contains missing prices."
         )
+
+    return prices
+
+
+def backtest_portfolio(
+    prices,
+    weights,
+    initial_value=1000,
+    confidence=0.95,
+    annual_risk_free_rate=0.0
+):
+    """Backtest a daily rebalanced portfolio without cash flows."""
+
+    if (
+        isinstance(initial_value, bool)
+        or not isinstance(initial_value, Real)
+        or not np.isfinite(initial_value)
+        or initial_value <= 0
+    ):
+        raise ValueError(
+            "Initial value must be positive and finite."
+        )
+
+    prices = align_backtest_prices(prices)
 
     returns = calculate_daily_returns(prices)
 

@@ -170,8 +170,7 @@ python -m pytest -v
 JavaScript export tests:
 
 ```bash
-node --test tnode --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjsests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs
-```
+node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs```
 
 Node.js is required for frontend testing only, not for
 running the dashboard.
@@ -331,6 +330,43 @@ Historical performance does not guarantee future results.
 The engine is available through POST /api/backtest and the
 interactive API documentation.
 
+## Historical Benchmark Comparison
+
+The benchmark engine compares a portfolio against a reference
+asset, such as a broad-market ETF (VTI or SPY), over identical
+historical dates.
+
+Both investments start with the same capital and use the same
+overlapping adjusted price history. The portfolio is rebalanced
+daily, while the benchmark is invested entirely in the
+selected reference asset.
+
+Supported metrics include:
+
+- Historical investment value
+- Total return
+- Compound annual growth rate (CAGR)
+- Annualized volatility
+- Sharpe ratio
+- Maximum drawdown
+- Differences in total return and CAGR
+
+Return differences are expressed as fractional values.
+A difference of 0.05 means 5 percentage points of
+outperformance, not risk-adjusted alpha.
+
+The comparison supports up to 20 distinct tickers, including
+the benchmark.
+
+The engine rejects gaps within overlapping price history.
+Contributions, taxes, fees and trading costs are not included.
+
+Historical comparisons do not predict future performance.
+
+The engine is available through POST /api/benchmark
+and the interactive API documentation.
+Dashboard integration is planned.
+
 ## Portfolio Stress Testing
 
 Select **Run portfolio stress test** to evaluate Portfolio A
@@ -383,6 +419,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/compare` | Compare two allocations under shared assumptions |
 | POST | `/api/backtest` | Replay a portfolio over historical market prices |
 | POST | `/api/stress-test` | Evaluate hypothetical asset price shocks |
+| POST | `/api/benchmark` | Compare historical performance with a reference asset |
 
 Historical dates use YYYY-MM-DD, with an exclusive end date.
 Portfolio weights are fractional allocations. Totals between
