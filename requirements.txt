@@ -2,3 +2,7 @@ numpy
 pandas
 yfinance
 pytest
+fastapi
+pydantic>=2,<3
+uvicorn
+httpx
