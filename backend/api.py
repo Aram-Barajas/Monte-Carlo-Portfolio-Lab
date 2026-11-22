@@ -25,6 +25,8 @@ from .covariance import (
 from .monte_carlo import simulate_portfolio, summarize_simulations
 from .risk_metrics import calculate_historical_risk, calculate_simulation_risk
 from .backtest import backtest_portfolio
+from .stress_test import stress_test_portfolio
+
 
 app = FastAPI(
     title="Monte Carlo Portfolio Lab",
@@ -94,6 +96,64 @@ class PortfolioRequest(MarketRequest):
 
         return self
 
+
+class StressTestRequest(BaseModel):
+
+    model_config = ConfigDict(
+        extra="forbid",
+        strict=True,
+        allow_inf_nan=False
+    )
+
+    weights: dict[str, float] = Field(
+        min_length=1,
+        max_length=20
+    )
+
+    initial_value: float = Field(
+        default=1000,
+        gt=0,
+        le=1_000_000_000
+    )
+
+    scenarios: dict[str, dict[str, float]] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=10
+    )
+
+    @model_validator(mode="after")
+    def normalize_allocations(self):
+
+        tickers = normalize_tickers(
+            list(self.weights)
+        )
+
+        if any(len(ticker) > 20 for ticker in tickers):
+            raise ValueError(
+                "Ticker symbols must not exceed 20 characters."
+            )
+
+        self.weights = normalize_rounded_weights(
+            dict(
+                zip(tickers, self.weights.values())
+            ),
+            tickers
+        ).to_dict()
+
+        if self.scenarios is not None:
+
+            for name, shocks in self.scenarios.items():
+
+                symbols = normalize_tickers(
+                    list(shocks)
+                )
+
+                self.scenarios[name] = dict(
+                    zip(symbols, shocks.values())
+                )
+
+        return self
 
 class BacktestRequest(PortfolioRequest):
     initial_value: float = Field(
@@ -367,6 +427,22 @@ def backtest(request: BacktestRequest):
                 "date"
             )
         }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=422,
+            detail=str(error)
+        ) from error
+
+@app.post("/api/stress-test")
+def stress_test(request: StressTestRequest):
+
+    try:
+        return stress_test_portfolio(
+            request.weights,
+            initial_value=request.initial_value,
+            scenarios=request.scenarios
+        )
 
     except ValueError as error:
         raise HTTPException(
