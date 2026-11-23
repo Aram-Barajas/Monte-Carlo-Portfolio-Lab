@@ -4,6 +4,7 @@ import json
 from datetime import date
 from pathlib import Path
 from secrets import randbits
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -215,6 +216,10 @@ class BenchmarkRequest(BacktestRequest):
         return self
 
 class SimulationRequest(PortfolioRequest):
+    model: Literal["gaussian", "gaussian_uncertain", "block_bootstrap"] = "gaussian"
+    block_length: int = Field(default=5, ge=1, le=252)
+    drift_weight: float = Field(default=1.0, ge=0, le=1)
+
     initial_value: float = Field(
         default=1000, ge=0, le=1_000_000_000
     )
@@ -401,12 +406,19 @@ def simulation_result(returns, request, shared_returns=None):
         trading_days=request.trading_days,
         num_simulations=request.num_simulations,
         monthly_contribution=request.monthly_contribution,
-        seed=request.seed
+        seed=request.seed,
+        model=request.model,
+        block_length=request.block_length,
+        drift_weight=request.drift_weight
     )
     return {
         "analysis": analysis,
         "trading_days": request.trading_days,
         "num_simulations": request.num_simulations,
+        "model": request.model,
+        "block_length": request.block_length if request.model == "block_bootstrap" else None,
+        "drift_weight": request.drift_weight,
+        "seed": request.seed,
         "percentiles": frame_records(summarize_simulations(paths), "trading_day"),
         "simulation_risk": calculate_simulation_risk(
             paths, request.monthly_contribution, request.confidence
@@ -419,6 +431,8 @@ def simulation_result(returns, request, shared_returns=None):
 def simulate(request: SimulationRequest):
     returns = load_market_data(request)
     try:
+        if request.seed is None:
+            request = request.model_copy(update={"seed": randbits(32)})
         return simulation_result(returns, request)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error

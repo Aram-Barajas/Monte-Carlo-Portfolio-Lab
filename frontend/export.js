@@ -40,7 +40,7 @@ function buildCsvRows(snapshot, format) {
 
     const seed = comparing
         ? data.seed
-        : payload.seed;
+        : data.seed ?? payload.seed;
 
     // Projected percentile bands.
 
@@ -151,6 +151,9 @@ function buildCsvRows(snapshot, format) {
                 "trading_days",
                 "num_simulations",
                 "seed",
+                "model",
+                "block_length",
+                "drift_weight",
                 "observations",
                 "confidence",
                 "annual_risk_free_rate",
@@ -187,6 +190,9 @@ function buildCsvRows(snapshot, format) {
                     result.trading_days,
                     result.num_simulations,
                     seed,
+                    result.model ?? payload.model ?? "gaussian",
+                    (result.model ?? payload.model) === "block_bootstrap" ? result.block_length ?? payload.block_length : null,
+                    result.drift_weight ?? payload.drift_weight ?? 1,
                     analysis.observations,
                     risk.confidence,
                     payload.annual_risk_free_rate ?? 0,

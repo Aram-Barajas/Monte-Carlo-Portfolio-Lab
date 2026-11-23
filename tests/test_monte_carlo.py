@@ -78,6 +78,78 @@ class MonteCarloTests(unittest.TestCase):
             np.array_equal(first, second)
         )
 
+    def test_bootstrap_matches_circular_joint_blocks(self):
+        returns = pd.DataFrame({"A": [.10, -.05, .03], "B": [-.02, .07, -.01]})
+        weights = {"A": .4, "B": .6}
+        rng = np.random.default_rng(42)
+        expected = np.full((8, 6), 100.0)
+        gross = 1 + returns.to_numpy() @ np.array([.4, .6])
+        for day in range(5):
+            if day % 3 == 0:
+                starts = rng.integers(3, size=8)
+            expected[:, day + 1] = expected[:, day] * gross[(starts + day % 3) % 3]
+        paths = simulate_portfolio(returns, weights, 100, 5, 8, seed=42,
+                                   model="block_bootstrap", block_length=3)
+        np.testing.assert_allclose(paths, expected, rtol=1e-12)
+
+    def test_bootstrap_preserves_cross_asset_pairing(self):
+        returns = pd.DataFrame({"A": [.1, -.1, .2, -.2], "B": [-.1, .1, -.2, .2]})
+        paths = simulate_portfolio(returns, {"A": .5, "B": .5}, 100, 25, 50,
+                                   seed=42, model="block_bootstrap", block_length=2)
+        np.testing.assert_allclose(paths, 100, rtol=1e-12)
+
+    def test_alternative_models_reproduce_seed_and_contributions(self):
+        for model in ("block_bootstrap", "gaussian_uncertain"):
+            with self.subTest(model=model):
+                kwargs = dict(model=model, block_length=2, seed=42,
+                              trading_days=42, num_simulations=25, monthly_contribution=100)
+                first = simulate_portfolio(self.returns, self.weights, **kwargs)
+                second = simulate_portfolio(self.returns, self.weights, **kwargs)
+                np.testing.assert_array_equal(first, second)
+                different = simulate_portfolio(self.returns, self.weights, **{**kwargs, "seed": 43})
+                self.assertFalse(np.array_equal(first, different))
+                without = simulate_portfolio(self.returns, self.weights,
+                                             **{**kwargs, "monthly_contribution": 0})
+                np.testing.assert_allclose(first[:, 20], without[:, 20])
+                np.testing.assert_allclose(first[:, 21] - without[:, 21], 100)
+                np.testing.assert_allclose(first[:, 42] - without[:, 42],
+                                           100 * without[:, 42] / without[:, 21] + 100)
+
+    def test_drift_shrinkage_zero_mean_is_not_zero_return_assumption(self):
+        returns = pd.DataFrame({"A": [.01] * 4})
+        for model in ("gaussian", "gaussian_uncertain", "block_bootstrap"):
+            with self.subTest(model=model):
+                paths = simulate_portfolio(returns, {"A": 1}, 100, 10, 5,
+                                           seed=12, model=model, block_length=2, drift_weight=.5)
+                np.testing.assert_allclose(paths[:, -1], 100 * 1.01**5, rtol=1e-12)
+
+    def test_uncertain_mean_has_expected_terminal_log_variance(self):
+        returns = pd.DataFrame({"A": np.expm1([-.03, .01, .04, -.02, .01])})
+        horizon = 30
+        daily_variance = np.log1p(returns["A"]).var(ddof=1)
+        for model, expected in (
+            ("gaussian", horizon * daily_variance),
+            ("gaussian_uncertain", (horizon + horizon**2 / len(returns)) * daily_variance),
+        ):
+            with self.subTest(model=model):
+                paths = simulate_portfolio(returns, {"A": 1}, 100, horizon, 10000,
+                                           seed=42, model=model)
+                measured = np.log(paths[:, -1] / 100).var(ddof=1)
+                self.assertTrue(np.isclose(measured, expected, rtol=.05), (measured, expected))
+
+    def test_invalid_model_parameters(self):
+        for kwargs in (
+            {"model": "other"}, {"drift_weight": -1}, {"drift_weight": 1.1},
+            {"drift_weight": np.nan}, {"drift_weight": True},
+            {"block_length": 0}, {"block_length": 1.5}, {"block_length": True},
+            {"model": "block_bootstrap", "block_length": 5},
+        ):
+            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                simulate_portfolio(self.returns, self.weights, **kwargs)
+        with self.assertRaisesRegex(ValueError, "chronological"):
+            simulate_portfolio(self.returns.iloc[::-1], self.weights,
+                               model="block_bootstrap", block_length=2)
+
     def test_zero_return(self):
         returns = pd.DataFrame({
             "A": [0.0, 0.0, 0.0]

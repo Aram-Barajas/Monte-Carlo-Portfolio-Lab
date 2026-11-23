@@ -14,6 +14,14 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('id="simulation-form"', response.text)
         self.assertIn('id="compare-enabled"', response.text)
 
+    def test_simulation_model_controls_and_caveats(self):
+        page = self.client.get("/").text
+        for identifier in ("simulation-model", "block-length", "drift-weight", "simulation-model-summary"):
+            self.assertIn(f'id="{identifier}"', page)
+        self.assertIn('value="gaussian_uncertain"', page)
+        self.assertIn('value="block_bootstrap"', page)
+        self.assertIn("not confidence intervals", page)
+
     def test_workspace_navigation(self):
         page = self.client.get("/").text
         script = self.client.get("/static/workspace.js")
