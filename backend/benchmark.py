@@ -14,7 +14,11 @@ def compare_benchmark(
     benchmark,
     initial_value=1000,
     confidence=0.95,
-    annual_risk_free_rate=0.0
+    annual_risk_free_rate=0.0,
+    *,
+    rebalancing="daily",
+    trading_cost_bps=0,
+    rebalance_threshold=.05
 ):
     """Replay both investments over identical historical dates."""
 
@@ -46,13 +50,17 @@ def compare_benchmark(
     portfolio = backtest_portfolio(
         prices[tickers],
         weights,
-        **settings
+        **settings,
+        rebalancing=rebalancing,
+        trading_cost_bps=trading_cost_bps,
+        rebalance_threshold=rebalance_threshold
     )
 
     reference = backtest_portfolio(
         prices[[benchmark]],
         {benchmark: 1.0},
-        **settings
+        **settings,
+        rebalancing="buy_hold"
     )
 
     excess_return = (

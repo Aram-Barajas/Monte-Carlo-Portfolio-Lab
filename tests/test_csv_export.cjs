@@ -215,3 +215,18 @@ test("Summary exports the actual model, drift, block length and generated seed",
     assert.equal(row[header.indexOf("block_length")], 10);
     assert.equal(row[header.indexOf("drift_weight")], .5);
 });
+
+test("Real projection CSV and summary retain trading assumptions", () => {
+    const real = { ...snapshot, data: { ...result, rebalancing: "monthly", trading_cost_bps: 20,
+        annual_inflation: .03, median_trading_costs: 5,
+        real_percentiles: result.percentiles.map(point => ({ ...point, median: point.median - 10 })) } };
+    const [heading, ...rows] = buildCsvRows(real, "real-projections");
+    assert.ok(heading.includes("real_median"));
+    assert.equal(rows.at(-1)[heading.indexOf("real_median")], 995);
+    const [summary, row] = buildCsvRows(real, "summary");
+    assert.equal(row[summary.indexOf("rebalancing")], "monthly");
+    assert.equal(row[summary.indexOf("trading_cost_bps")], 20);
+    assert.equal(row[summary.indexOf("annual_inflation")], .03);
+    assert.equal(row[summary.indexOf("median_trading_costs")], 5);
+    assert.equal(row[summary.indexOf("real_median_ending_value")], 995);
+});

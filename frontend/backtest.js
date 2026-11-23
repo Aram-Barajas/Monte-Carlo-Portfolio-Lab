@@ -1,6 +1,6 @@
 // Historical portfolio backtesting dashboard.
 
-function buildBacktestPayload(allocation, start, end, initial) {
+function buildBacktestPayload(allocation, start, end, initial, policy = {}) {
     if (!start || !end || start >= end) {
         throw new Error("Select a valid historical date range.");
     }
@@ -22,7 +22,8 @@ function buildBacktestPayload(allocation, start, end, initial) {
         ...allocation,
         start,
         end,
-        initial_value: initialValue
+        initial_value: initialValue,
+        ...policy
     };
 }
 
@@ -284,7 +285,8 @@ function initBacktestDashboard() {
                 getAllocation("allocation"),
                 $("start").value,
                 $("end").value,
-                $("initial").value
+                $("initial").value,
+                getPortfolioPolicy()
             );
 
             status.textContent =
@@ -301,6 +303,7 @@ function initBacktestDashboard() {
                     "Ending value",
                     money(data.ending_value)
                 ],
+                ["Cumulative trading costs", money(data.trading_costs ?? 0)],
                 [
                     "Cumulative return",
                     percent(data.total_return)
@@ -334,7 +337,7 @@ function initBacktestDashboard() {
                 Object.entries(data.weights)
                     .map(([ticker, weight]) =>
                         `${ticker}: ${percent(weight)}`
-                    ).join(" | ");
+                    ).join(" | ") + ` | ${formatTradingPolicy(data)}`;
 
             lastBacktest = data;
 

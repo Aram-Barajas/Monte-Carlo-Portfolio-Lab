@@ -22,6 +22,13 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('value="block_bootstrap"', page)
         self.assertIn("not confidence intervals", page)
 
+    def test_trading_and_inflation_controls(self):
+        page = self.client.get("/").text
+        for identifier in ("rebalancing", "trading-cost-bps", "rebalance-threshold",
+                           "annual-inflation", "chart-dollar-mode", "simulation-policy-summary"):
+            self.assertIn(f'id="{identifier}"', page)
+        self.assertIn('value="real-projections"', page)
+
     def test_workspace_navigation(self):
         page = self.client.get("/").text
         script = self.client.get("/static/workspace.js")

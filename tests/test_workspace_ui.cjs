@@ -101,7 +101,9 @@ test("historical overview renders independently and simulation updates both view
     assert.equal(find("block-length").disabled, false);
     for (const [id, value] of Object.entries({ allocation: "VTI, 100", start: "2025-01-01",
         end: "2026-01-01", initial: "1000", monthly: "100", years: "1", paths: "500",
-        confidence: "95", seed: "", "block-length": "10", "drift-weight": "50" })) {
+        confidence: "95", seed: "", "block-length": "10", "drift-weight": "50",
+        rebalancing: "threshold", "rebalance-threshold": "5", "trading-cost-bps": "20",
+        "annual-inflation": "3" })) {
         find(id).value = value;
     }
     find("initial").checkValidity = () => true;
@@ -110,6 +112,15 @@ test("historical overview renders independently and simulation updates both view
     assert.equal(submitted.block_length, 10);
     assert.equal(submitted.drift_weight, .5);
     assert.equal(submitted.seed, null);
+    assert.equal(submitted.rebalancing, "threshold");
+    assert.equal(submitted.rebalance_threshold, .05);
+    assert.equal(submitted.trading_cost_bps, 20);
+    assert.equal(submitted.annual_inflation, .03);
+    context.updateRebalancingControls();
+    assert.equal(find("rebalance-threshold-control").hidden, false);
+    find("rebalancing").value = "buy_hold";
+    context.updateRebalancingControls();
+    assert.equal(find("rebalance-threshold-control").hidden, true);
     find("simulation-model").value = "gaussian";
     context.updateSimulationModelControls();
     assert.equal(find("block-length-control").hidden, true);
@@ -130,6 +141,8 @@ test("historical overview renders independently and simulation updates both view
     const band = { p05: 1000, p25: 1000, median: 1000, p75: 1000, p95: 1000 };
     const simulation = { analysis, num_simulations: 500, trading_days: 252,
         model: "block_bootstrap", drift_weight: .5, block_length: 5, seed: 42,
+        rebalancing: "monthly", trading_cost_bps: 20, annual_inflation: .03, median_trading_costs: 12,
+        real_percentiles: [{ ...band, trading_day: 0 }, { p05: 900, p25: 900, median: 900, p75: 900, p95: 900, trading_day: 252 }],
         simulation_risk: { median_ending_value: 1000, total_invested: 1000, probability_of_loss: .1,
             confidence: .95, terminal_var: 100, terminal_expected_shortfall: 200, mean_ending_value: 1000 },
         percentiles: [{ ...band, trading_day: 0 }, { ...band, trading_day: 252 }] };
@@ -139,6 +152,14 @@ test("historical overview renders independently and simulation updates both view
     assert.equal(find("correlation-b-panel").hidden, false);
     assert.match(find("simulation-input-summary").textContent, /B: VTI/);
     assert.match(find("simulation-model-summary").textContent, /Historical block bootstrap.*50.00%.*5-day blocks.*42/);
+    assert.match(find("simulation-policy-summary").textContent, /Monthly.*20 bps.*3.00%/);
+    find("chart-dollar-mode").value = "real";
+    context.updateChartDollars();
+    assert.match(find("chart-dollar-note").textContent, /Starting-dollar/);
+    assert.equal(vm.runInContext("currentBands.at(-1).median", context), 900);
+    find("chart-dollar-mode").value = "nominal";
+    context.updateChartDollars();
+    assert.equal(vm.runInContext("currentBands.at(-1).median", context), 1000);
     context.renderHistoricalOverview(analysis, null, payload, "Historical analysis");
     assert.equal(find("correlation-b-panel").hidden, true);
     assert.equal(find("comparison-results").hidden, false);

@@ -1,4 +1,4 @@
-"""Simulate daily rebalanced portfolios using correlated log returns."""
+"""Simulate portfolios using correlated log returns and trading policies."""
 
 from numbers import Integral, Real
 
@@ -10,6 +10,7 @@ from .portfolio_metrics import (
     validate_returns,
     validate_weights
 )
+from .portfolio_policy import PortfolioTracker, validate_policy
 
 
 DAYS_PER_MONTH = 21
@@ -47,7 +48,11 @@ def simulate_portfolio(
     *,
     model="gaussian",
     block_length=5,
-    drift_weight=1.0
+    drift_weight=1.0,
+    rebalancing="daily",
+    trading_cost_bps=0,
+    rebalance_threshold=.05,
+    return_costs=False
 ):
     """Generate simulated portfolio value trajectories."""
 
@@ -97,6 +102,8 @@ def simulate_portfolio(
     if (isinstance(drift_weight, bool) or not isinstance(drift_weight, Real)
             or not np.isfinite(drift_weight) or not 0 <= drift_weight <= 1):
         raise ValueError("Drift weight must be between 0 and 1.")
+
+    validate_policy(rebalancing, trading_cost_bps, rebalance_threshold)
 
     # Estimate historical return parameters.
     means, covariance = estimate_log_return_parameters(
@@ -152,6 +159,9 @@ def simulate_portfolio(
     )
 
     paths[:, 0] = initial_value
+    tracker = PortfolioTracker(weights, initial_value, num_simulations,
+                               rebalancing=rebalancing, trading_cost_bps=trading_cost_bps,
+                               rebalance_threshold=rebalance_threshold)
     try:
         with np.errstate(over="raise", invalid="raise"):
 
@@ -167,29 +177,22 @@ def simulate_portfolio(
                     random_shocks = rng.standard_normal((num_simulations, len(weights)))
                     log_returns = drift + random_shocks @ factor.T
 
-                gross_returns = (
-                    np.exp(log_returns) @ weights
+                paths[:, day] = tracker.advance(
+                    np.exp(log_returns), day,
+                    monthly_contribution if day % DAYS_PER_MONTH == 0 else 0
                 )
-
-                paths[:, day] = (
-                    paths[:, day - 1] * gross_returns
-                )
-
-                # Add contributions approximately monthly.
-                if day % DAYS_PER_MONTH == 0:
-                    paths[:, day] += monthly_contribution
 
     except FloatingPointError as error:
         raise ValueError(
             "Simulation values exceeded numerical limits."
         ) from error
 
-    if not np.isfinite(paths).all():
+    if not np.isfinite(paths).all() or not np.isfinite(tracker.costs).all():
         raise ValueError(
             "Simulation produced non-finite values."
         )
 
-    return paths
+    return (paths, tracker.costs.copy()) if return_costs else paths
 
 
 def summarize_simulations(paths):

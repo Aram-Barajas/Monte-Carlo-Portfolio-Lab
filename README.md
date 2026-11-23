@@ -86,6 +86,10 @@ The dashboard supports both light and dark themes.
 | Simulation model | Choose fixed-mean Gaussian, uncertain-mean Gaussian, or historical block bootstrap. |
 | Historical block length | Number of consecutive historical returns sampled together (bootstrap only). |
 | Historical log-return drift retained | Retain 100%, 50%, or 0% of the historical mean log return to examine sensitivity to estimated growth. |
+| Rebalancing policy | Daily, monthly, quarterly, annual, buy and hold, or threshold-based. Shared by Simulation and Backtesting. |
+| Rebalance threshold | Maximum absolute deviation from target weights, in percentage points, before rebalancing. Used only for the threshold policy. |
+| Trading cost | Cost per side of traded notional, in basis points (100 bps = 1%). |
+| Assumed annual inflation | Constant annual change in purchasing power, from -5% to 25%. Used for simulation real-dollar projections. |
 
 ### Historical Data vs. Investment Horizon
 
@@ -307,8 +311,8 @@ Features include:
 - Percentile-based outcome summaries
 - Input validation and automated tests
 
-All three models assume daily portfolio rebalancing and monthly contributions
-every 21 trading days. The default Gaussian model is unchanged.
+All three models use the selected rebalancing policy and monthly contributions
+every 21 trading days. The default remains daily rebalancing with zero costs.
 
 ### Return-generation models
 
@@ -357,9 +361,54 @@ separate risk confidence setting controls VaR and expected shortfall, not the
 scenario percentile bands. Compare models and historical windows to examine
 sensitivity; none of the models guarantees forecast accuracy.
 
-Simulation results represent hypothetical scenarios rather
-than guaranteed investment outcomes. Taxes, fees, inflation,
-and changing market conditions are not explicitly modeled.
+Simulation results represent hypothetical scenarios rather than guaranteed
+investment outcomes. Taxes, separate fund fees and changing market conditions
+are not explicitly modeled.
+
+### Trading Assumptions and Real-Dollar Projections
+
+Simulation, portfolio comparison, historical backtesting, and benchmark
+comparison share the same portfolio evolution engine. Initial capital is
+assumed already invested in the submitted target allocation, without an
+initial purchase fee or final liquidation fee. Holdings drift with market
+returns unless rebalanced. Contributions, when enabled, are invested at target
+weights after each 21st trading day's market movement; purchase costs are
+deducted from the contribution budget before buying.
+
+- Daily, monthly, quarterly and annual schedules rebalance after the market
+  return and contributions on multiples of 1, 21, 63 and 252 trading days.
+- Buy and hold does not sell or rebalance existing positions; new contributions
+  still purchase assets in target proportions.
+- Threshold-based checks weights after returns and contributions each day,
+  restoring target weights if any asset differs from its target by at least
+  the specified number of percentage points. This is an absolute drift, not
+  a relative percentage change in the weight.
+
+Trading cost is charged on both purchases and sales of rebalanced holdings.
+If the rate is `c`, the post-trade holdings equal the target weights times
+the portfolio value after fees. The fee equals `c` times the absolute sum of
+actual changes in individual holdings. The engine solves this self-financing
+equation iteratively. It also charges `c` on contribution purchases. Reported
+cumulative trading costs are nominal sums, not estimates of forgone growth.
+The benchmark assumes a cost-free buy-and-hold position in one asset.
+Historical performance metrics use realized net portfolio returns. Overview,
+optimization and efficient frontier still use fixed-weight daily analytics;
+stress tests are instantaneous shocks, so trading assumptions do not apply.
+
+The `/api/simulate`, `/api/compare`, `/api/backtest` and `/api/benchmark`
+endpoints accept `rebalancing` (`daily`, `monthly`, `quarterly`, `annual`,
+`buy_hold`, `threshold`), `trading_cost_bps` (0–500, default 0), and
+`rebalance_threshold` (0.001–1, default 0.05). Simulation and comparison also
+accept `annual_inflation` (-0.05–0.25, default 0). Inflation-adjusted values
+at trading day `t` divide nominal values by `(1 + annual_inflation)^(t/252)`.
+This assumes constant inflation, not historical CPI or an inflation forecast.
+Nominal contribution amounts are not increased with inflation.
+
+The simulation dashboard can switch its chart between nominal and starting
+dollars, reports the real median ending value and median cumulative trading
+costs, and exports real percentile bands separately. Terminal loss frequency,
+VaR and expected shortfall remain nominal after trading costs, not real-dollar
+risk estimates. CSV summary exports retain all submitted assumptions.
 
 ## Advanced Risk Metrics
 
@@ -400,8 +449,8 @@ do not affect backtesting.
 The results show the submitted allocation and actual overlapping
 historical dates.
 
-The backtesting engine replays adjusted historical closing prices
-for a fixed portfolio allocation, assuming daily rebalancing.
+The backtesting engine replays adjusted historical closing prices using
+the selected rebalancing and trading-cost assumptions.
 
 Supported metrics include:
 
@@ -420,7 +469,7 @@ The engine uses overlapping price history and rejects missing
 prices inside that period.
 
 Backtesting does not include recurring contributions, taxes,
-fees or trading costs. Selecting today's portfolio with hindsight
+separate fund fees or inflation. Selecting today's portfolio with hindsight
 can bias historical results.
 
 Historical performance does not guarantee future results.
@@ -435,9 +484,9 @@ asset, such as a broad-market ETF (VTI or SPY), over identical
 historical dates.
 
 Both investments start with the same capital and use the same
-overlapping adjusted price history. The portfolio is rebalanced
-daily, while the benchmark is invested entirely in the
-selected reference asset.
+overlapping adjusted price history. The portfolio follows the selected
+rebalancing and trading-cost assumptions, while the benchmark is a
+cost-free buy-and-hold position in the selected reference asset.
 
 Supported metrics include:
 
@@ -457,7 +506,7 @@ The comparison supports up to 20 distinct tickers, including
 the benchmark.
 
 The engine rejects gaps within overlapping price history.
-Contributions, taxes, fees and trading costs are not included.
+Contributions, taxes, separate fund fees and inflation are not included.
 
 Historical comparisons do not predict future performance.
 

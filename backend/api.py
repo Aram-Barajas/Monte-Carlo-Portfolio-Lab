@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 from secrets import randbits
 from typing import Literal
+import numpy as np
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -30,6 +31,7 @@ from .stress_test import stress_test_portfolio
 from .benchmark import compare_benchmark
 from .optimization import optimize_portfolio
 from .frontier import calculate_efficient_frontier
+from .portfolio_policy import inflation_factors
 
 app = FastAPI(
     title="Monte Carlo Portfolio Lab",
@@ -185,7 +187,17 @@ class StressTestRequest(BaseModel):
 
         return self
 
-class BacktestRequest(PortfolioRequest):
+class TradingPolicyRequest(PortfolioRequest):
+    rebalancing: Literal["daily", "monthly", "quarterly", "annual", "buy_hold", "threshold"] = "daily"
+    trading_cost_bps: float = Field(default=0, ge=0, le=500)
+    rebalance_threshold: float = Field(default=.05, ge=.001, le=1)
+
+    def trading_policy(self):
+        return {"rebalancing": self.rebalancing, "trading_cost_bps": self.trading_cost_bps,
+                "rebalance_threshold": self.rebalance_threshold}
+
+
+class BacktestRequest(TradingPolicyRequest):
     initial_value: float = Field(
         default=1000,
         gt=0,
@@ -215,10 +227,11 @@ class BenchmarkRequest(BacktestRequest):
 
         return self
 
-class SimulationRequest(PortfolioRequest):
+class SimulationRequest(TradingPolicyRequest):
     model: Literal["gaussian", "gaussian_uncertain", "block_bootstrap"] = "gaussian"
     block_length: int = Field(default=5, ge=1, le=252)
     drift_weight: float = Field(default=1.0, ge=0, le=1)
+    annual_inflation: float = Field(default=0, ge=-.05, le=.25)
 
     initial_value: float = Field(
         default=1000, ge=0, le=1_000_000_000
@@ -400,7 +413,7 @@ def simulation_result(returns, request, shared_returns=None):
     analysis = analyze_portfolio(returns, request)
     simulation_returns = returns if shared_returns is None else shared_returns
     weights = {ticker: request.weights.get(ticker, 0.0) for ticker in simulation_returns.columns}
-    paths = simulate_portfolio(
+    paths, costs = simulate_portfolio(
         simulation_returns, weights,
         initial_value=request.initial_value,
         trading_days=request.trading_days,
@@ -409,8 +422,14 @@ def simulation_result(returns, request, shared_returns=None):
         seed=request.seed,
         model=request.model,
         block_length=request.block_length,
-        drift_weight=request.drift_weight
+        drift_weight=request.drift_weight,
+        return_costs=True,
+        **request.trading_policy()
     )
+    bands = summarize_simulations(paths)
+    real_bands = bands.div(inflation_factors(request.annual_inflation, request.trading_days), axis=0)
+    if not np.isfinite(real_bands.to_numpy()).all():
+        raise ValueError("Inflation-adjusted results exceeded numerical limits.")
     return {
         "analysis": analysis,
         "trading_days": request.trading_days,
@@ -419,7 +438,12 @@ def simulation_result(returns, request, shared_returns=None):
         "block_length": request.block_length if request.model == "block_bootstrap" else None,
         "drift_weight": request.drift_weight,
         "seed": request.seed,
-        "percentiles": frame_records(summarize_simulations(paths), "trading_day"),
+        **request.trading_policy(),
+        "rebalance_threshold": request.rebalance_threshold if request.rebalancing == "threshold" else None,
+        "annual_inflation": request.annual_inflation,
+        "median_trading_costs": float(np.median(costs)),
+        "percentiles": frame_records(bands, "trading_day"),
+        "real_percentiles": frame_records(real_bands, "trading_day"),
         "simulation_risk": calculate_simulation_risk(
             paths, request.monthly_contribution, request.confidence
         ),
@@ -475,7 +499,8 @@ def backtest(request: BacktestRequest):
             request.weights,
             initial_value=request.initial_value,
             confidence=request.confidence,
-            annual_risk_free_rate=request.annual_risk_free_rate
+            annual_risk_free_rate=request.annual_risk_free_rate,
+            **request.trading_policy()
         )
 
         trajectory = result.pop("trajectory")
@@ -528,7 +553,8 @@ def benchmark(request: BenchmarkRequest):
             request.benchmark,
             initial_value=request.initial_value,
             confidence=request.confidence,
-            annual_risk_free_rate=request.annual_risk_free_rate
+            annual_risk_free_rate=request.annual_risk_free_rate,
+            **request.trading_policy()
         )
 
         for name in ("portfolio", "benchmark"):

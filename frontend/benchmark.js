@@ -11,7 +11,8 @@ function buildBenchmarkPayload(
     start,
     end,
     initial,
-    ticker
+    ticker,
+    policy = {}
 ) {
     const benchmark = ticker.trim().toUpperCase();
 
@@ -26,7 +27,8 @@ function buildBenchmarkPayload(
             allocation,
             start,
             end,
-            initial
+            initial,
+            policy
         ),
         benchmark
     };
@@ -106,7 +108,8 @@ function initBenchmarkDashboard() {
                 $("start").value,
                 $("end").value,
                 $("initial").value,
-                $("benchmark-ticker").value
+                $("benchmark-ticker").value,
+                getPortfolioPolicy()
             );
 
             status.textContent =
@@ -133,6 +136,7 @@ function initBenchmarkDashboard() {
                     money(a.ending_value),
                     money(b.ending_value)
                 ],
+                ["Cumulative trading costs", money(a.trading_costs ?? 0), money(b.trading_costs ?? 0)],
                 [
                     "Total return",
                     percent(a.total_return),
@@ -201,7 +205,7 @@ function initBenchmarkDashboard() {
                 Object.entries(data.weights)
                     .map(([ticker, weight]) =>
                         `${ticker}: ${percent(weight)}`
-                    ).join(" | ");
+                    ).join(" | ") + ` | ${formatTradingPolicy(a)}`;
 
             $("benchmark-excess").textContent =
                 `Portfolio A minus ${data.benchmark_ticker}: ` +
