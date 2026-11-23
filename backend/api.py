@@ -295,7 +295,7 @@ class BenchmarkRequest(BacktestRequest):
         return self
 
 class SimulationRequest(TradingPolicyRequest):
-    model: Literal["gaussian", "gaussian_uncertain", "block_bootstrap"] = "gaussian"
+    model: Literal["gaussian", "gaussian_uncertain", "block_bootstrap"] = "gaussian_uncertain"
     block_length: int = Field(default=5, ge=1, le=252)
     drift_weight: float = Field(default=1.0, ge=0, le=1)
     annual_inflation: float = Field(default=0, ge=-.05, le=.25)
