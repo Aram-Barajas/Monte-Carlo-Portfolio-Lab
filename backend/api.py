@@ -35,6 +35,7 @@ from .robust_optimization import optimize_robust_portfolio
 from .planning import plan_portfolio
 from .model_validation import validate_models, MAX_VALIDATION_DRAWS
 from .discovery import screen_candidates, MAX_CANDIDATES
+from .http_security import HttpSecurityMiddleware, HttpLimits
 from .portfolio_policy import inflation_factors
 from .advanced_risk import (
     CRISIS_WINDOWS, calculate_risk_contributions, calculate_rolling_risk,
@@ -45,9 +46,24 @@ app = FastAPI(
     title="Monte Carlo Portfolio Lab",
     version="1.0.0"
 )
+app.add_middleware(HttpSecurityMiddleware, limits=HttpLimits.from_env())
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
-app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+FRONTEND_ASSETS = frozenset({
+    "styles.css", "app.js", "export.js", "chart-tools.js", "backtest.js",
+    "benchmark.js", "stress-test.js", "frontier.js", "robust-optimization.js",
+    "advanced-risk.js", "planning.js", "model-validation.js", "discovery.js", "workspace.js",
+})
+
+
+class ApprovedStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        if path not in FRONTEND_ASSETS:
+            raise HTTPException(status_code=404, detail="Not found.")
+        return await super().get_response(path, scope)
+
+
+app.mount("/static", ApprovedStaticFiles(directory=FRONTEND_DIR), name="static")
 
 
 @app.get("/", include_in_schema=False)
