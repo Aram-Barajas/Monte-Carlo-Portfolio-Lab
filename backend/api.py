@@ -27,7 +27,7 @@ from .risk_metrics import calculate_historical_risk, calculate_simulation_risk
 from .backtest import backtest_portfolio
 from .stress_test import stress_test_portfolio
 from .benchmark import compare_benchmark
-
+from .optimization import optimize_portfolio
 
 app = FastAPI(
     title="Monte Carlo Portfolio Lab",
@@ -97,6 +97,25 @@ class PortfolioRequest(MarketRequest):
 
         return self
 
+
+class OptimizationRequest(PortfolioRequest):
+
+    max_weight: float = Field(
+        default=1.0,
+        gt=0,
+        le=1
+    )
+
+    @model_validator(mode="after")
+    def validate_limit(self):
+
+        if self.max_weight < 1 / len(self.tickers):
+
+            raise ValueError(
+                "Maximum weight is too low for the asset count."
+            )
+
+        return self
 
 class StressTestRequest(BaseModel):
 
@@ -507,6 +526,31 @@ def benchmark(request: BenchmarkRequest):
             "weights": request.weights,
             **result
         }
+
+    except ValueError as error:
+
+        raise HTTPException(
+            status_code=422,
+            detail=str(error)
+        ) from error
+
+
+@app.post("/api/optimize")
+def optimize(request: OptimizationRequest):
+
+    returns = load_market_data(request)
+
+    try:
+
+        return optimize_portfolio(
+            returns,
+
+            request.weights,
+
+            annual_risk_free_rate=request.annual_risk_free_rate,
+
+            max_weight=request.max_weight
+        )
 
     except ValueError as error:
 
