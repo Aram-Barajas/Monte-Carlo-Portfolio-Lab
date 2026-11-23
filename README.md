@@ -196,7 +196,7 @@ random seed, when available.
 ## Research Workspace
 
 Use the navigation to switch between Overview, Simulation, Backtesting,
-Optimization, Stress testing and Risk analytics. Each view displays its own controls and
+Optimization, Stress testing, Risk analytics and Goal planning. Each view displays its own controls and
 results. Portfolio A and applicable dates/capital are shared; switching
 views preserves entered settings and completed results until page reload.
 Browser back and forward navigation works through URL fragments.
@@ -704,6 +704,42 @@ not have sufficient history. Replaying today's assets in the past
 introduces hindsight and survivorship bias. These selected windows
 are illustrative, not predictions or exhaustive crisis scenarios.
 
+## Long-Term Goal Planning
+
+The Goal planning workspace supports accumulation goals over 1-40 years.
+Enter a target in today's purchasing power, initial capital, starting monthly
+contribution, annual contribution increase (or decrease), assumed inflation,
+and desired modeled success probability. The same historical return models
+and drift assumptions as the simulation workspace are available.
+
+The model uses 252 trading days per year, 21 per month, fixed daily target
+weights, and deposits at the end of each month. Contributions change once
+per simulated year; a 3% increase raises the monthly deposit by 3% after
+each 12-month period. The nominal terminal target equals the real goal
+times (1 + annual inflation) raised to the number of years. All projected
+balances are displayed in starting-dollar purchasing power, whereas
+contributed capital is reported in nominal dollars.
+
+The engine computes annual 5th, 50th and 95th percentiles and the fraction
+of simulated paths at or above the goal at each anniversary. Success at
+the selected horizon is not the probability of ever reaching the goal.
+It also computes the median shortfall among missed paths. For each sampled
+market path, terminal balance is linear in the starting contribution
+under these assumptions. The required contribution is the smallest
+empirical order statistic reaching the selected probability, rounded up
+to cents. Contribution sensitivity compares alternative starting monthly
+amounts using identical market paths and annual escalation. This avoids
+differences caused solely by new random draws.
+
+The endpoint permits 1-2,000 paths subject to a 20-million asset-day-path
+budget. Monthly recording reduces memory use without changing market
+shocks or the original daily simulation behavior. The random seed is
+returned for repeatability. Results are conditional on a finite simulated
+sample and historical assumptions, not actual probabilities or guaranteed
+future results. Taxes, fees, withdrawals, changing allocations and
+retirement income are not modeled. This is an educational accumulation
+planning tool, not a personalized savings recommendation.
+
 ## REST API
 
 Start the FastAPI server from the repository root:
@@ -720,6 +756,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/market-data` | Adjusted historical prices |
 | POST | `/api/portfolio` | Portfolio metrics, covariance, correlation and risk |
 | POST | `/api/simulate` | Monte Carlo percentile bands and terminal risk |
+| POST | `/api/plan` | Long-horizon inflation-adjusted goal probabilities and contribution sensitivity |
 | POST | `/api/compare` | Compare two allocations under shared assumptions |
 | POST | `/api/backtest` | Replay a portfolio over historical market prices |
 | POST | `/api/stress-test` | Evaluate hypothetical asset price shocks |

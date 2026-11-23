@@ -32,7 +32,7 @@ class DashboardTests(unittest.TestCase):
     def test_workspace_navigation(self):
         page = self.client.get("/").text
         script = self.client.get("/static/workspace.js")
-        for view in ("overview", "simulation", "backtesting", "optimization", "stress", "risk"):
+        for view in ("overview", "simulation", "backtesting", "optimization", "stress", "risk", "planning"):
             self.assertIn(f'data-workspace-tab="{view}"', page)
             self.assertIn(f'data-result-view="{view}"', page)
         self.assertIn('id="run-overview"', page)
@@ -50,6 +50,15 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(script.status_code, 200)
         self.assertIn("/api/risk-analysis", script.text)
         self.assertIn("/api/crisis-replay", script.text)
+
+    def test_goal_planning_dashboard(self):
+        page = self.client.get("/").text
+        for identifier in ("run-plan", "plan-goal", "plan-probability", "planning-results",
+                           "plan-chart", "plan-sensitivity", "plan-annual"):
+            self.assertIn(f'id="{identifier}"', page)
+        script = self.client.get("/static/planning.js")
+        self.assertEqual(script.status_code, 200)
+        self.assertIn("/api/plan", script.text)
 
     def test_stylesheet_loads(self):
         response = self.client.get("/static/styles.css")

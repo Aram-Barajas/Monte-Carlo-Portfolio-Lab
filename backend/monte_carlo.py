@@ -52,7 +52,8 @@ def simulate_portfolio(
     rebalancing="daily",
     trading_cost_bps=0,
     rebalance_threshold=.05,
-    return_costs=False
+    return_costs=False,
+    record_every=1
 ):
     """Generate simulated portfolio value trajectories."""
 
@@ -104,6 +105,9 @@ def simulate_portfolio(
         raise ValueError("Drift weight must be between 0 and 1.")
 
     validate_policy(rebalancing, trading_cost_bps, rebalance_threshold)
+    if (isinstance(record_every, bool) or not isinstance(record_every, Integral)
+            or not 1 <= record_every <= trading_days):
+        raise ValueError("Recording interval must be an integer within the simulation horizon.")
 
     # Estimate historical return parameters.
     means, covariance = estimate_log_return_parameters(
@@ -119,8 +123,9 @@ def simulate_portfolio(
     num_simulations = int(num_simulations)
 
     # Prevent excessively large simulations.
+    record_count = 1 + (trading_days + record_every - 1) // record_every
     if (
-        num_simulations * (trading_days + 1)
+        num_simulations * record_count
         > MAX_PATH_VALUES
 
         or num_simulations * trading_days * len(weights)
@@ -155,13 +160,14 @@ def simulate_portfolio(
 
     # Store portfolio values for every simulation.
     paths = np.empty(
-        (num_simulations, trading_days + 1)
+        (num_simulations, record_count)
     )
 
     paths[:, 0] = initial_value
     tracker = PortfolioTracker(weights, initial_value, num_simulations,
                                rebalancing=rebalancing, trading_cost_bps=trading_cost_bps,
                                rebalance_threshold=rebalance_threshold)
+    recorded = 1
     try:
         with np.errstate(over="raise", invalid="raise"):
 
@@ -177,10 +183,13 @@ def simulate_portfolio(
                     random_shocks = rng.standard_normal((num_simulations, len(weights)))
                     log_returns = drift + random_shocks @ factor.T
 
-                paths[:, day] = tracker.advance(
+                values = tracker.advance(
                     np.exp(log_returns), day,
                     monthly_contribution if day % DAYS_PER_MONTH == 0 else 0
                 )
+                if day % record_every == 0 or day == trading_days:
+                    paths[:, recorded] = values
+                    recorded += 1
 
     except FloatingPointError as error:
         raise ValueError(

@@ -8,17 +8,17 @@ const {
 } = require("../frontend/workspace.js");
 
 function mockWorkspace() {
-    const views = ["overview", "simulation", "backtesting", "optimization", "stress", "risk"];
+    const views = ["overview", "simulation", "backtesting", "optimization", "stress", "risk", "planning"];
     const links = views.map(view => ({ dataset: { workspaceTab: view }, attrs: {},
         setAttribute(key, value) { this.attrs[key] = value; },
         removeAttribute(key) { delete this.attrs[key]; } }));
-    const controls = ["overview simulation backtesting optimization risk", "simulation backtesting stress", ...views]
+    const controls = ["overview simulation backtesting optimization risk planning", "simulation backtesting stress planning", ...views]
         .map(value => ({ dataset: { controls: value }, hidden: false, value: "preserved" }));
     const panels = views.map(view => ({ dataset: { resultView: view }, hidden: false }));
     const nodes = Object.fromEntries([
         "empty", "workspace-empty-title", "workspace-empty-description", "overview-results",
         "results", "backtest-results", "benchmark-results", "frontier-results", "stress-results",
-        "crisis-results", "advanced-risk-results", "robust-results"
+        "crisis-results", "advanced-risk-results", "robust-results", "planning-results"
     ].map(id => [id, { hidden: true, textContent: "" }]));
     return { links, controls, panels, nodes, doc: {
         querySelectorAll(selector) {
@@ -44,13 +44,18 @@ test("navigation reveals only relevant controls and preserves results and inputs
     assert.equal(controls[0].hidden, true); // dates
     assert.equal(controls[1].hidden, false); // capital
     assert.equal(controls[3].hidden, true); // simulation
-    assert.deepEqual(panels.map(panel => panel.hidden), [true, true, true, true, false, true]);
+    assert.deepEqual(panels.map(panel => panel.hidden), [true, true, true, true, false, true, true]);
     assert.equal(nodes.results.hidden, false);
     assert.equal(nodes.empty.hidden, false);
     applyWorkspaceView("simulation", doc);
     assert.equal(controls[0].value, "preserved");
     assert.equal(controls[3].hidden, false);
     assert.equal(nodes.empty.hidden, true);
+    applyWorkspaceView("planning", doc);
+    assert.equal(controls[0].hidden, false);
+    assert.equal(controls[1].hidden, false);
+    assert.equal(links[6].attrs["aria-current"], "page");
+    assert.equal(nodes.empty.hidden, false);
     assert.equal(links[4].attrs["aria-current"], undefined);
     applyWorkspaceView("risk", doc);
     assert.equal(controls[0].hidden, false);

@@ -999,6 +999,13 @@ main#workspace {
 #robust-status.error { color: var(--error); }
 .robust-settings summary { cursor: pointer; color: var(--green); font-size: .85rem; font-weight: 600; }
 .robust-settings label { margin-top: .9rem; }
+#planning-results { margin-top: 1rem; min-width: 0; }
+#planning-results h3 { font-size: .95rem; margin-top: 1.4rem; }
+#plan-summary, #plan-status { overflow-wrap: anywhere; }
+#plan-status.error { color: var(--error); }
+#plan-chart .plan-band { fill: var(--chart-outer); }
+#plan-chart .plan-median { stroke: var(--chart-median); }
+#plan-chart .plan-goal { stroke: var(--comparison-line); stroke-dasharray: 5 4; }
 .export-panel { padding: .75rem 1rem; }
 .export-panel summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--green); }
 .export-panel[open] summary { margin-bottom: .75rem; }
