@@ -15,6 +15,7 @@
     <script src="/static/stress-test.js" defer></script>
     <script src="/static/benchmark.js" defer></script>
     <script src="/static/frontier.js" defer></script>
+    <script src="/static/robust-optimization.js" defer></script>
     <script src="/static/advanced-risk.js" defer></script>
     <script src="/static/workspace.js" defer></script>
 
@@ -314,6 +315,27 @@ AMZN, 15</textarea>
                         Ready to optimize.
                     </p>
 
+                </div>
+
+                <div class="tool-controls" data-controls="optimization" hidden>
+                    <h3>Robust allocation research</h3>
+                    <p class="muted">Shares the maximum asset weight, historical dates and risk-free rate above.</p>
+                    <details class="robust-settings">
+                        <summary>Model settings</summary>
+                        <label for="robust-turnover">Maximum one-way turnover (%)</label>
+                        <input id="robust-turnover" type="number" min="0" max="100" step="0.01" value="25">
+                        <label for="robust-aversion">Risk aversion (variance penalty)</label>
+                        <input id="robust-aversion" type="number" min="0.1" max="100" step="0.1" value="5">
+                        <label for="robust-mean">Mean shrinkage (%)</label>
+                        <input id="robust-mean" type="number" min="0" max="100" step="1" value="50">
+                        <label for="robust-covariance">Covariance shrinkage (%)</label>
+                        <input id="robust-covariance" type="number" min="0" max="100" step="1" value="25">
+                        <label for="robust-holdout">Reserved validation history (%)</label>
+                        <input id="robust-holdout" type="number" min="10" max="50" step="1" value="25">
+                    </details>
+                    <button id="run-robust" type="button">Compare robust allocations</button>
+                    <p class="muted">Fits on earlier dates and tests on later dates. Higher shrinkage reduces reliance on exact historical estimates.</p>
+                    <p id="robust-status" class="muted" role="status" aria-live="polite">Ready to compare.</p>
                 </div>
 
                 <div class="stress-controls" data-controls="stress" hidden>
@@ -886,6 +908,33 @@ AMZN, 15</textarea>
                         or trading recommendation.
                     </p>
 
+                </section>
+                <section id="robust-results" class="panel" hidden>
+                    <h2>Robust allocation research | Portfolio A</h2>
+                    <p id="robust-summary" class="muted"></p>
+                    <p id="robust-warning" class="muted"></p>
+                    <h3>Allocation comparison</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th scope="col">Asset</th><th scope="col">Current</th><th scope="col">Traditional</th><th scope="col">Robust</th></tr></thead>
+                            <tbody id="robust-weights"></tbody>
+                        </table>
+                    </div>
+                    <h3>Historical results on training dates</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th scope="col">Metric</th><th scope="col">Current</th><th scope="col">Traditional</th><th scope="col">Robust</th></tr></thead>
+                            <tbody id="robust-training"></tbody>
+                        </table>
+                    </div>
+                    <h3>Historical results on reserved validation dates</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th scope="col">Metric</th><th scope="col">Current</th><th scope="col">Traditional</th><th scope="col">Robust</th></tr></thead>
+                            <tbody id="robust-validation"></tbody>
+                        </table>
+                    </div>
+                    <p class="muted">Both optimizers maximize estimated return minus a variance penalty with identical constraints. Robust estimates shrink means toward their cross-asset average and covariances toward zero off-diagonal. Evaluation uses unmodified historical returns, daily fixed weights, no cash flows or fees. Turnover measures the initial allocation change only. Selecting settings after checking validation results can overfit the holdout. These are research allocations, not trading instructions.</p>
                 </section>
 
                 </div>

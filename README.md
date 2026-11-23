@@ -574,6 +574,40 @@ and the interactive API documentation.
 The dashboard's Optimization workspace exposes the efficient frontier,
 including minimum-volatility and maximum-Sharpe reference allocations.
 
+### Robust allocation research
+
+The same workspace also compares the current allocation, a traditional
+mean-variance allocation, and a shrinkage-regularized allocation.
+Both optimizers maximize annualized arithmetic mean return minus
+half the risk-aversion parameter times annualized portfolio variance.
+They share long-only, fully invested, maximum asset weight and
+one-way turnover constraints. One-way turnover is half the sum of
+absolute weight changes from the original allocation (e.g., 10% moved
+from one asset to another is 10% turnover). An infeasible combination
+of allocation cap and turnover limit is rejected.
+
+The robust model shrinks historical means toward their cross-asset
+average and covariance toward its diagonal (zero off-diagonal entries).
+The two shrinkage settings range from 0% to 100%. This regularizes
+noisy historical estimates; it is not a worst-case guarantee or an
+automatically estimated shrinkage intensity. Risk aversion controls
+the variance penalty; the risk-free rate is used for Sharpe reporting.
+
+The earlier portion of the selected history is used for fitting.
+A later, chronological 10-50% holdout is reserved for evaluation only.
+At least 63 training observations and 21 holdout observations are required.
+Both periods report compounded total return, annualized arithmetic return,
+annualized sample volatility and Sharpe ratio using unmodified historical
+returns and daily fixed target weights. The holdout allocation is not
+re-fitted on validation data. The current allocation is shown unchanged
+even if outside the optimization cap. Turnover measures the initial
+allocation change, not daily rebalancing activity; fees and taxes are not
+modeled. Selecting parameters based on holdout results or selecting
+today's assets introduces potential hindsight and overfitting.
+
+Use POST /api/robust-optimize or **Compare robust allocations**.
+These are hypothetical research allocations, not trade recommendations.
+
 ## Efficient Frontier
 
 Select **Build efficient frontier** to examine the historically
@@ -693,6 +727,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/crisis-replay` | Replay predefined historical crisis windows against SPY |
 | POST | `/api/benchmark` | Compare historical performance with a reference asset |
 | POST | `/api/optimize` | Compare minimum-volatility and maximum-Sharpe allocations |
+| POST | `/api/robust-optimize` | Compare sample and shrinkage-based allocation models with chronological holdout |
 | POST | `/api/frontier` | Calculate historically estimated efficient allocations |
 
 Historical dates use YYYY-MM-DD, with an exclusive end date.

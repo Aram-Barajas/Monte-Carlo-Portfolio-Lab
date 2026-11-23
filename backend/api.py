@@ -31,6 +31,7 @@ from .stress_test import stress_test_portfolio
 from .benchmark import compare_benchmark
 from .optimization import optimize_portfolio
 from .frontier import calculate_efficient_frontier
+from .robust_optimization import optimize_robust_portfolio
 from .portfolio_policy import inflation_factors
 from .advanced_risk import (
     CRISIS_WINDOWS, calculate_risk_contributions, calculate_rolling_risk,
@@ -136,6 +137,21 @@ class OptimizationRequest(PortfolioRequest):
             )
 
         return self
+
+class RobustOptimizationRequest(OptimizationRequest):
+    max_turnover: float = Field(default=1.0, ge=0, le=1)
+    risk_aversion: float = Field(default=5.0, ge=.1, le=100)
+    mean_shrinkage: float = Field(default=.5, ge=0, le=1)
+    covariance_shrinkage: float = Field(default=.25, ge=0, le=1)
+    holdout_fraction: float = Field(default=.25, ge=.1, le=.5)
+
+    @model_validator(mode="after")
+    def validate_turnover(self):
+        required = sum(max(0, weight - self.max_weight) for weight in self.weights.values())
+        if required > self.max_turnover + 1e-8:
+            raise ValueError("Turnover limit is too low to satisfy the maximum asset weight.")
+        return self
+
 
 class FrontierRequest(OptimizationRequest):
 
@@ -668,6 +684,20 @@ def optimize(request: OptimizationRequest):
             status_code=422,
             detail=str(error)
         ) from error
+
+@app.post("/api/robust-optimize")
+def robust_optimize(request: RobustOptimizationRequest):
+    returns = load_market_data(request)
+    try:
+        return optimize_robust_portfolio(
+            returns, request.weights, max_weight=request.max_weight,
+            max_turnover=request.max_turnover, risk_aversion=request.risk_aversion,
+            mean_shrinkage=request.mean_shrinkage, covariance_shrinkage=request.covariance_shrinkage,
+            holdout_fraction=request.holdout_fraction, annual_risk_free_rate=request.annual_risk_free_rate,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
 
 @app.post("/api/frontier")
 def frontier(request: FrontierRequest):

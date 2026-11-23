@@ -56,6 +56,15 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/css", response.headers["content-type"])
 
+    def test_robust_optimization_dashboard(self):
+        page = self.client.get("/").text
+        for identifier in ("run-robust", "robust-results", "robust-weights",
+                           "robust-training", "robust-validation"):
+            self.assertIn(f'id="{identifier}"', page)
+        script = self.client.get("/static/robust-optimization.js")
+        self.assertEqual(script.status_code, 200)
+        self.assertIn("/api/robust-optimize", script.text)
+
     def test_script_loads(self):
         response = self.client.get("/static/app.js")
         self.assertEqual(response.status_code, 200)

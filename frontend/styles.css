@@ -993,6 +993,12 @@ main#workspace {
 #rolling-charts h3 { margin-top: 1.25rem; font-size: .95rem; }
 #advanced-risk-summary, #crisis-summary { overflow-wrap: anywhere; }
 #advanced-risk-status, #crisis-status { overflow-wrap: anywhere; }
+#robust-results { margin-top: 1rem; min-width: 0; }
+#robust-results h3 { font-size: .95rem; margin-top: 1.2rem; }
+#robust-summary, #robust-status { overflow-wrap: anywhere; }
+#robust-status.error { color: var(--error); }
+.robust-settings summary { cursor: pointer; color: var(--green); font-size: .85rem; font-weight: 600; }
+.robust-settings label { margin-top: .9rem; }
 .export-panel { padding: .75rem 1rem; }
 .export-panel summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--green); }
 .export-panel[open] summary { margin-bottom: .75rem; }
