@@ -28,6 +28,7 @@ from .backtest import backtest_portfolio
 from .stress_test import stress_test_portfolio
 from .benchmark import compare_benchmark
 from .optimization import optimize_portfolio
+from .frontier import calculate_efficient_frontier
 
 app = FastAPI(
     title="Monte Carlo Portfolio Lab",
@@ -116,6 +117,14 @@ class OptimizationRequest(PortfolioRequest):
             )
 
         return self
+
+class FrontierRequest(OptimizationRequest):
+
+    points: int = Field(
+        default=25,
+        ge=2,
+        le=50
+    )
 
 class StressTestRequest(BaseModel):
 
@@ -550,6 +559,32 @@ def optimize(request: OptimizationRequest):
             annual_risk_free_rate=request.annual_risk_free_rate,
 
             max_weight=request.max_weight
+        )
+
+    except ValueError as error:
+
+        raise HTTPException(
+            status_code=422,
+            detail=str(error)
+        ) from error
+
+@app.post("/api/frontier")
+def frontier(request: FrontierRequest):
+
+    returns = load_market_data(request)
+
+    try:
+
+        return calculate_efficient_frontier(
+            returns,
+
+            request.weights,
+
+            max_weight=request.max_weight,
+
+            annual_risk_free_rate=request.annual_risk_free_rate,
+
+            points=request.points
         )
 
     except ValueError as error:

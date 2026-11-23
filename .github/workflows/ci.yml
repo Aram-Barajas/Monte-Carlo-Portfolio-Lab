@@ -55,4 +55,4 @@ jobs:
           package-manager-cache: false
 
       - name: Run frontend tests
-        run: node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs tests/test_benchmark_ui.cjs
+        run: node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs tests/test_benchmark_ui.cjs tests/test_frontier_ui.cjs
