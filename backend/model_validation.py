@@ -71,7 +71,8 @@ def _summarize(scores):
         "mean_crps": average("crps"), "mean_brier_loss": average("brier_loss"),
         "pit_histogram": histogram.tolist(),
     }
-    if not all(np.isfinite(v) for k, v in summary.items() if k != "pit_histogram"):
+    if not all(np.isfinite(v) for k, v in summary.items()
+               if k not in ("pit_histogram", "coverage_90_wilson_reference")):
         raise ValueError("Aggregate forecast scores exceeded numerical limits.")
     return summary
 
