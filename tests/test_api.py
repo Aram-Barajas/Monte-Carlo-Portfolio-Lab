@@ -55,6 +55,32 @@ class APITests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
 
+    @patch("backend.api.fetch_daily_returns")
+    def test_simulation_model_settings_and_generated_seed(self, fetch):
+        fetch.return_value = self.returns
+        for model in ("gaussian", "gaussian_uncertain", "block_bootstrap"):
+            with self.subTest(model=model):
+                payload = {**self.simulation, "model": model, "block_length": 2,
+                           "drift_weight": .5, "seed": None}
+                response = self.client.post("/api/simulate", json=payload)
+                self.assertEqual(response.status_code, 200)
+                body = response.json()
+                self.assertEqual(body["model"], model)
+                self.assertEqual(body["drift_weight"], .5)
+                self.assertEqual(body["block_length"], 2 if model == "block_bootstrap" else None)
+                self.assertIsInstance(body["seed"], int)
+                repeated = self.client.post("/api/simulate", json={**payload, "seed": body["seed"]})
+                self.assertEqual(body, repeated.json())
+
+    @patch("backend.api.fetch_daily_returns")
+    def test_invalid_simulation_model_settings(self, fetch):
+        fetch.return_value = self.returns
+        for settings in ({"model": "invalid"}, {"drift_weight": 1.2},
+                         {"block_length": 0}, {"model": "block_bootstrap", "block_length": 4}):
+            with self.subTest(settings=settings):
+                response = self.client.post("/api/simulate", json={**self.simulation, **settings})
+                self.assertEqual(response.status_code, 422)
+
     def test_all_historical_analytics_reject_price_gaps(self):
         prices = self.prices.copy().astype(float)
         prices.loc[prices.index[1], "NVDA"] = float("nan")

@@ -203,3 +203,15 @@ test("Summary includes submitted settings and risk values", () => {
         () => buildCsvRows(snapshot, "unknown")
     );
 });
+
+test("Summary exports the actual model, drift, block length and generated seed", () => {
+    const [header, row] = buildCsvRows({
+        ...snapshot,
+        data: { ...result, seed: 125, model: "block_bootstrap", block_length: 10, drift_weight: .5 },
+        payload: { ...snapshot.payload, seed: null }
+    }, "summary");
+    assert.equal(row[header.indexOf("seed")], 125);
+    assert.equal(row[header.indexOf("model")], "block_bootstrap");
+    assert.equal(row[header.indexOf("block_length")], 10);
+    assert.equal(row[header.indexOf("drift_weight")], .5);
+});

@@ -15,6 +15,7 @@ from .portfolio_metrics import (
 DAYS_PER_MONTH = 21
 MAX_PATH_VALUES = 30_000_000
 MAX_RANDOM_DRAWS = 200_000_000
+SIMULATION_MODELS = ("gaussian", "gaussian_uncertain", "block_bootstrap")
 
 
 def estimate_log_return_parameters(returns):
@@ -42,7 +43,11 @@ def simulate_portfolio(
     trading_days=TRADING_DAYS,
     num_simulations=1000,
     monthly_contribution=0,
-    seed=None
+    seed=None,
+    *,
+    model="gaussian",
+    block_length=5,
+    drift_weight=1.0
 ):
     """Generate simulated portfolio value trajectories."""
 
@@ -84,6 +89,15 @@ def simulate_portfolio(
             "seed must be a nonnegative integer or None."
         )
 
+    if model not in SIMULATION_MODELS:
+        raise ValueError("Unknown simulation model.")
+    if (isinstance(block_length, bool) or not isinstance(block_length, Integral)
+            or not 1 <= block_length <= 252):
+        raise ValueError("Block length must be an integer from 1 to 252.")
+    if (isinstance(drift_weight, bool) or not isinstance(drift_weight, Real)
+            or not np.isfinite(drift_weight) or not 0 <= drift_weight <= 1):
+        raise ValueError("Drift weight must be between 0 and 1.")
+
     # Estimate historical return parameters.
     means, covariance = estimate_log_return_parameters(
         returns
@@ -109,17 +123,28 @@ def simulate_portfolio(
             "Simulation is too large. Reduce paths, days, or assets."
         )
 
-    # Decompose the covariance matrix.
-    eigenvalues, eigenvectors = np.linalg.eigh(
-        covariance.to_numpy()
-    )
-
-    factor = eigenvectors * np.sqrt(
-        np.maximum(eigenvalues, 0.0)
-    )
-
     # Initialize the random number generator.
     rng = np.random.default_rng(seed)
+
+    historical_mean = means.to_numpy()
+    drift = drift_weight * historical_mean
+    if model == "block_bootstrap":
+        if not returns.index.is_monotonic_increasing:
+            raise ValueError("Bootstrap returns must be in chronological order.")
+        if block_length > len(returns):
+            raise ValueError("Block length exceeds available historical returns. Choose a shorter block or longer history.")
+        log_history = np.log1p(returns.to_numpy(dtype=float))
+        # Shrink mean log return toward zero without changing joint deviations.
+        log_history = log_history + (drift - historical_mean)
+    else:
+        eigenvalues, eigenvectors = np.linalg.eigh(covariance.to_numpy())
+        factor = eigenvectors * np.sqrt(np.maximum(eigenvalues, 0.0))
+        if model == "gaussian_uncertain":
+            # Draw one uncertain mean per path, held fixed for the entire horizon.
+            # Conditional on the IID Gaussian model, Cov(sample mean) = Sigma/n.
+            drift = drift + (drift_weight / np.sqrt(len(returns))) * (
+                rng.standard_normal((num_simulations, len(weights))) @ factor.T
+            )
 
     # Store portfolio values for every simulation.
     paths = np.empty(
@@ -127,20 +152,20 @@ def simulate_portfolio(
     )
 
     paths[:, 0] = initial_value
-    means = means.to_numpy()
-
     try:
         with np.errstate(over="raise", invalid="raise"):
 
             for day in range(1, trading_days + 1):
 
-                random_shocks = rng.standard_normal(
-                    (num_simulations, len(weights))
-                )
-
-                log_returns = (
-                    means + random_shocks @ factor.T
-                )
+                if model == "block_bootstrap":
+                    offset = (day - 1) % block_length
+                    if offset == 0:
+                        starts = rng.integers(len(log_history), size=num_simulations)
+                    # Sample whole rows together; circular blocks wrap at the end.
+                    log_returns = log_history[(starts + offset) % len(log_history)]
+                else:
+                    random_shocks = rng.standard_normal((num_simulations, len(weights)))
+                    log_returns = drift + random_shocks @ factor.T
 
                 gross_returns = (
                     np.exp(log_returns) @ weights

@@ -95,6 +95,26 @@ test("historical overview renders independently and simulation updates both view
         localStorage: { getItem: () => "light" }, attachChartInspection() {}
     });
     vm.runInContext(fs.readFileSync(require.resolve("../frontend/app.js"), "utf8"), context);
+    find("simulation-model").value = "block_bootstrap";
+    context.updateSimulationModelControls();
+    assert.equal(find("block-length-control").hidden, false);
+    assert.equal(find("block-length").disabled, false);
+    for (const [id, value] of Object.entries({ allocation: "VTI, 100", start: "2025-01-01",
+        end: "2026-01-01", initial: "1000", monthly: "100", years: "1", paths: "500",
+        confidence: "95", seed: "", "block-length": "10", "drift-weight": "50" })) {
+        find(id).value = value;
+    }
+    find("initial").checkValidity = () => true;
+    const submitted = context.getPayload();
+    assert.equal(submitted.model, "block_bootstrap");
+    assert.equal(submitted.block_length, 10);
+    assert.equal(submitted.drift_weight, .5);
+    assert.equal(submitted.seed, null);
+    find("simulation-model").value = "gaussian";
+    context.updateSimulationModelControls();
+    assert.equal(find("block-length-control").hidden, true);
+    assert.equal(find("block-length").disabled, true);
+    assert.equal(context.getPayload().block_length, 5);
     const analysis = { tickers: ["VTI"], weights: { VTI: 1 }, observations: 252,
         portfolio_metrics: { annualized_return: .1, annualized_volatility: .2 },
         historical_risk: { sharpe_ratio: .5, max_drawdown: .12 },
@@ -109,6 +129,7 @@ test("historical overview renders independently and simulation updates both view
     assert.match(find("overview-summary").textContent, /2025-01-01/);
     const band = { p05: 1000, p25: 1000, median: 1000, p75: 1000, p95: 1000 };
     const simulation = { analysis, num_simulations: 500, trading_days: 252,
+        model: "block_bootstrap", drift_weight: .5, block_length: 5, seed: 42,
         simulation_risk: { median_ending_value: 1000, total_invested: 1000, probability_of_loss: .1,
             confidence: .95, terminal_var: 100, terminal_expected_shortfall: 200, mean_ending_value: 1000 },
         percentiles: [{ ...band, trading_day: 0 }, { ...band, trading_day: 252 }] };
@@ -117,6 +138,7 @@ test("historical overview renders independently and simulation updates both view
     assert.equal(find("overview-results").hidden, false);
     assert.equal(find("correlation-b-panel").hidden, false);
     assert.match(find("simulation-input-summary").textContent, /B: VTI/);
+    assert.match(find("simulation-model-summary").textContent, /Historical block bootstrap.*50.00%.*5-day blocks.*42/);
     context.renderHistoricalOverview(analysis, null, payload, "Historical analysis");
     assert.equal(find("correlation-b-panel").hidden, true);
     assert.equal(find("comparison-results").hidden, false);

@@ -83,6 +83,9 @@ The dashboard supports both light and dark themes.
 | Simulations | Number of hypothetical future portfolio paths generated. |
 | Confidence (%) | Confidence level used for Value at Risk and expected shortfall. |
 | Random seed | Allows simulation results to be reproduced using the same inputs and historical data. Leave blank for new random draws. |
+| Simulation model | Choose fixed-mean Gaussian, uncertain-mean Gaussian, or historical block bootstrap. |
+| Historical block length | Number of consecutive historical returns sampled together (bootstrap only). |
+| Historical log-return drift retained | Retain 100%, 50%, or 0% of the historical mean log return to examine sensitivity to estimated growth. |
 
 ### Historical Data vs. Investment Horizon
 
@@ -304,9 +307,55 @@ Features include:
 - Percentile-based outcome summaries
 - Input validation and automated tests
 
-The model assumes daily portfolio rebalancing, independent
-daily log-return draws, and monthly contributions every
-21 trading days.
+All three models assume daily portfolio rebalancing and monthly contributions
+every 21 trading days. The default Gaussian model is unchanged.
+
+### Return-generation models
+
+- **Gaussian (fixed historical mean):** independent multivariate normal
+  log-return draws using the estimated historical mean and covariance.
+- **Gaussian (uncertain mean):** each simulated path draws a fixed mean from
+  a Gaussian approximation with mean equal to the historical estimate and
+  covariance equal to the daily sample covariance divided by the number of
+  historical returns. Future daily shocks are independently drawn conditional
+  on that mean. This illustrates mean-estimation uncertainty under IID normal
+  assumptions, but does not account for covariance estimation error or regime
+  changes. It is not a calibrated predictive distribution.
+- **Historical block bootstrap:** samples contiguous blocks of joint historical
+  log-return rows with replacement, wrapping from the last observation to the
+  first. This preserves cross-asset relationships and short-run dependence
+  within blocks. The block length is configurable (default 5 trading days,
+  between 1 and 252, and no greater than the available history). Block length
+  1 is independent empirical resampling. Blocks may join artificial boundary
+  transitions, cannot directly sample unseen shocks, and depend on the chosen
+  historical period. This model does not independently account for parameter
+  uncertainty. See D. N. Politis and J. P. Romano, *A Circular Block-Resampling
+  Procedure for Stationary Data* (1992).
+
+### Drift sensitivity and interpretation
+
+`drift_weight` is a fraction from 0 to 1. In Gaussian models it scales the
+mean log return; in the uncertain-mean model it also scales the sampled mean
+uncertainty. In the block bootstrap it shifts each historical log return by
+`(drift_weight - 1) * historical_mean`, preserving deviations about the mean.
+This is a scenario sensitivity setting, not a statistically fitted shrinkage
+estimator. Zero mean log return does not imply zero mean simple return.
+
+The `/api/simulate` and `/api/compare` endpoints accept `model` (`gaussian`,
+`gaussian_uncertain`, `block_bootstrap`), `drift_weight` (default 1.0), and
+`block_length` (default 5, used only by the bootstrap model). Responses and
+summary CSVs retain these submitted assumptions and the actual random seed.
+A blank seed generates a new seed that is reported for reproducibility with
+the same data, implementation and settings. Comparison mode shares shocks,
+including sampled blocks or uncertain means, across both allocations.
+
+The 5th–95th percentile band is the central 90% of simulated values at each
+date under the chosen assumptions, not a confidence interval for future value.
+The loss frequency is the fraction of simulated paths ending below nominal
+contributed capital, not an estimated probability of real-world loss. The
+separate risk confidence setting controls VaR and expected shortfall, not the
+scenario percentile bands. Compare models and historical windows to examine
+sensitivity; none of the models guarantees forecast accuracy.
 
 Simulation results represent hypothetical scenarios rather
 than guaranteed investment outcomes. Taxes, fees, inflation,

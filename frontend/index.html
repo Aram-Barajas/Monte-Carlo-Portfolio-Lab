@@ -144,7 +144,7 @@ AMZN, 15</textarea>
                         </label>
 
                         <label>
-                            Confidence (%)
+                            Risk confidence (%)
                             <select id="confidence">
                                 <option>90</option>
                                 <option selected>95</option>
@@ -159,6 +159,28 @@ AMZN, 15</textarea>
                                    step="1" value="42">
                         </label>
                     </div>
+
+                    <label for="simulation-model">Simulation model</label>
+                    <select id="simulation-model" aria-describedby="model-hint">
+                        <option value="gaussian">Gaussian (fixed historical mean)</option>
+                        <option value="gaussian_uncertain">Gaussian (uncertain mean)</option>
+                        <option value="block_bootstrap">Historical block bootstrap</option>
+                    </select>
+                    <small id="model-hint">Choose a hypothetical return-generation model.</small>
+
+                    <label id="block-length-control" hidden>
+                        Historical block length (trading days)
+                        <input id="block-length" type="number" min="1" max="252"
+                               step="1" value="5" required disabled>
+                    </label>
+
+                    <label for="drift-weight">Historical log-return drift retained (%)</label>
+                    <select id="drift-weight" aria-describedby="drift-hint">
+                        <option value="100" selected>100% (historical mean)</option>
+                        <option value="50">50% (shrink toward zero)</option>
+                        <option value="0">0% (zero log-return drift)</option>
+                    </select>
+                    <small id="drift-hint">Test sensitivity to historical return assumptions. Zero log drift does not imply zero arithmetic return.</small>
 
                     <button id="run" type="submit">
                         Run simulation
@@ -332,6 +354,12 @@ AMZN, 15</textarea>
 
                     <p id="summary" class="eyebrow"></p>
                     <p id="simulation-input-summary" class="muted"></p>
+                    <p id="simulation-model-summary" class="muted"></p>
+
+                    <section class="panel chart-panel" aria-label="Simulation limitations">
+                        <h2>Interpret the scenarios carefully</h2>
+                        <p class="muted">These outcomes depend on the selected history and model assumptions. Percentile bands are simulated scenario ranges, not confidence intervals or guarantees. Loss frequency counts paths ending below nominal contributed capital; taxes, fees and inflation are excluded. None of these models captures all future market or estimation uncertainty.</p>
+                    </section>
 
                     <details class="panel export-panel">
                         <summary>Export simulation data (CSV)</summary>
@@ -477,9 +505,9 @@ AMZN, 15</textarea>
                         </div>
 
                         <p class="muted">
-                            At each date, the bands describe the
-                            distribution of simulated values,
-                            not guaranteed limits.
+                            At each date, the bands describe the distribution of
+                            simulated values under the submitted assumptions, not
+                            confidence intervals for future portfolio values.
                         </p>
                     </section>
 

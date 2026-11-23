@@ -51,6 +51,19 @@ class ComparisonTests(unittest.TestCase):
         self.assertIsInstance(body["seed"], int)
 
     @patch("backend.api.fetch_daily_returns")
+    def test_alternative_models_share_shocks(self, fetch):
+        fetch.return_value = self.returns[["NVDA", "VTI"]]
+        for model in ("gaussian_uncertain", "block_bootstrap"):
+            with self.subTest(model=model):
+                payload = {**self.payload, "comparison_weights": {"VTI": .6, "NVDA": .4},
+                           "model": model, "block_length": 2, "drift_weight": .5}
+                response = self.client.post("/api/compare", json=payload)
+                self.assertEqual(response.status_code, 200)
+                body = response.json()
+                self.assertEqual(body["portfolio_a"]["model"], model)
+                self.assertEqual(body["portfolio_a"]["ending_values"], body["portfolio_b"]["ending_values"])
+
+    @patch("backend.api.fetch_daily_returns")
     def test_invalid_comparison_weights(self, fetch):
         response = self.client.post("/api/compare", json={**self.payload, "comparison_weights": {"VTI": .5}})
         self.assertEqual(response.status_code, 422)

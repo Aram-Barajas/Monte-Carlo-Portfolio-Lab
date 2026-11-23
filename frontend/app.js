@@ -43,6 +43,23 @@ $("compare-enabled").addEventListener("change", () => {
     $("run").textContent = enabled ? "Compare portfolios" : "Run simulation";
 });
 
+const SIMULATION_MODELS = {
+    gaussian: ["Gaussian (fixed historical mean)", "Independent joint normal log-return draws with a fixed estimated mean and covariance."],
+    gaussian_uncertain: ["Gaussian (uncertain mean)", "Each path receives a different fixed log-return mean using an IID Gaussian sampling-error approximation. Covariance remains fixed."],
+    block_bootstrap: ["Historical block bootstrap", "Joint consecutive historical return blocks preserve dependence within each block. Unseen market events are not generated directly."]
+};
+
+function updateSimulationModelControls() {
+    const model = $("simulation-model").value;
+    const bootstrap = model === "block_bootstrap";
+    $("block-length-control").hidden = !bootstrap;
+    $("block-length").disabled = !bootstrap;
+    $("model-hint").textContent = (SIMULATION_MODELS[model] || SIMULATION_MODELS.gaussian)[1];
+}
+
+$("simulation-model").addEventListener("change", updateSimulationModelControls);
+updateSimulationModelControls();
+
 // Light and dark mode
 
 const THEME_KEY = "portfolio-lab-theme";
@@ -177,6 +194,9 @@ function getPayload() {
         trading_days: number("years") * 252,
         num_simulations: number("paths"),
         confidence: number("confidence") / 100,
+        model: $("simulation-model").value,
+        block_length: $("simulation-model").value === "block_bootstrap" ? number("block-length") : 5,
+        drift_weight: number("drift-weight") / 100,
         seed: $("seed").value === ""
             ? null
             : number("seed")
@@ -392,6 +412,16 @@ function render(data, comparison = null, seed = null, payload) {
         `${payload.start} to ${payload.end} (exclusive) | A: ${allocationLabel(analysis.weights)}` +
         (comparison ? ` | B: ${allocationLabel(comparison.analysis.weights)}` : "");
 
+    const model = data.model ?? payload.model ?? "gaussian";
+    const driftWeight = data.drift_weight ?? payload.drift_weight ?? 1;
+    const blockLength = data.block_length ?? payload.block_length;
+    const actualSeed = data.seed ?? seed ?? payload.seed;
+    $("simulation-model-summary").textContent =
+        `${SIMULATION_MODELS[model][0]} | ${percent(driftWeight)} historical log drift` +
+        (model === "block_bootstrap" ? ` | ${blockLength}-day blocks` : "") +
+        (actualSeed != null ? ` | Seed: ${actualSeed}` : "") +
+        `. ${SIMULATION_MODELS[model][1]}`;
+
     metrics("metrics", [
         [
             "Median ending value",
@@ -406,13 +436,13 @@ function render(data, comparison = null, seed = null, payload) {
             `${money(last.p05)} - ${money(last.p95)}`
         ],
         [
-            "Probability of loss vs. contributions",
+            "Simulated loss frequency (nominal)",
             percent(risk.probability_of_loss)
         ]
     ], true);
 
     metrics("risk", [
-        ["Confidence", percent(risk.confidence)],
+        ["Risk confidence level", percent(risk.confidence)],
         ["Value at Risk (signed loss)", money(risk.terminal_var)],
         ["Expected shortfall (signed loss)", money(risk.terminal_expected_shortfall)],
         ["Mean ending value", money(risk.mean_ending_value)]
@@ -636,7 +666,7 @@ function renderComparison(a, b, seed) {
     const rows = [
         ["Median ending value", money(ar.median_ending_value), money(br.median_ending_value)],
         ["5th-95th percentile at end", range(a), range(b)],
-        ["Probability of loss", percent(ar.probability_of_loss), percent(br.probability_of_loss)],
+        ["Simulated loss frequency (nominal)", percent(ar.probability_of_loss), percent(br.probability_of_loss)],
         ["Annualized return (arithmetic)", percent(ap.annualized_return), percent(bp.annualized_return)],
         ["Annualized volatility", percent(ap.annualized_volatility), percent(bp.annualized_volatility)],
         ["Maximum drawdown", percent(ah.max_drawdown), percent(bh.max_drawdown)]
