@@ -18,7 +18,7 @@ function mockWorkspace() {
     const nodes = Object.fromEntries([
         "empty", "workspace-empty-title", "workspace-empty-description", "overview-results",
         "results", "backtest-results", "benchmark-results", "frontier-results", "stress-results",
-        "crisis-results", "advanced-risk-results"
+        "crisis-results", "advanced-risk-results", "robust-results"
     ].map(id => [id, { hidden: true, textContent: "" }]));
     return { links, controls, panels, nodes, doc: {
         querySelectorAll(selector) {
