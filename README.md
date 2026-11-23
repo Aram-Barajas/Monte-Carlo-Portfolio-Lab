@@ -196,7 +196,7 @@ random seed, when available.
 ## Research Workspace
 
 Use the navigation to switch between Overview, Simulation, Backtesting,
-Optimization, Stress testing, Risk analytics, Goal planning and Model validation. Each view displays its own controls and
+Optimization, Stress testing, Risk analytics, Goal planning, Model validation and Discovery. Each view displays its own controls and
 results. Portfolio A and applicable dates/capital are shared; switching
 views preserves entered settings and completed results until page reload.
 Browser back and forward navigation works through URL fragments.
@@ -782,6 +782,41 @@ changing regimes, and hindsight in asset selection can affect results.
 Tuning model settings against these folds can overfit them. Good
 historical scores do not guarantee future prediction quality.
 
+## Stock and ETF Discovery
+
+The Discovery workspace screens up to eight user-editable candidate
+tickers against a long-only Portfolio A containing up to 19 holdings.
+The initial candidate list is illustrative, not a recommendation.
+Each asset is evaluated independently at the selected 1-50% candidate
+weight; the original weights are scaled proportionally by one minus
+the candidate weight. No new capital or trades are assumed.
+
+The original portfolio defines the shared adjusted-price dates.
+Each candidate must have complete prices on those exact dates and
+the same trading calendar. A newer or unavailable ticker, an interior
+gap, or an existing holding is listed as excluded without shortening
+the other candidates' comparison. Dates absent from the entire
+provider history cannot be independently detected.
+
+Earlier observations form a training period and the final 10-50%
+form an untouched chronological validation period. At least 63 training
+and 21 validation returns are required. Candidates are ranked by
+training-period volatility reduction, Sharpe improvement, or annualized
+arithmetic return improvement. Positive changes are favorable under
+the selected metric and negative changes are unfavorable; an undefined
+Sharpe improvement cannot be ranked. The holdout is reported separately
+and never determines rank. Users can inspect each hypothetical allocation,
+correlation with Portfolio A, total return, volatility, Sharpe ratio and
+maximum drawdown on both periods. Daily rebalancing, 252 trading days
+per year, no fees and no cash flows are assumed.
+
+This is historical candidate research, not an automated buy or sell
+recommendation. The candidate list is not a complete market universe.
+The tool does not check valuation, business fundamentals, ETF holdings
+overlap, transaction costs, taxes, current market conditions or suitability.
+History selection, repeated testing and today's ticker universe can
+introduce hindsight and overfitting.
+
 ## REST API
 
 Start the FastAPI server from the repository root:
@@ -800,6 +835,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/simulate` | Monte Carlo percentile bands and terminal risk |
 | POST | `/api/plan` | Long-horizon inflation-adjusted goal probabilities and contribution sensitivity |
 | POST | `/api/validate-models` | Walk-forward out-of-sample scoring of simulation models |
+| POST | `/api/discover` | Screen hypothetical stock and ETF additions with chronological holdout |
 | POST | `/api/compare` | Compare two allocations under shared assumptions |
 | POST | `/api/backtest` | Replay a portfolio over historical market prices |
 | POST | `/api/stress-test` | Evaluate hypothetical asset price shocks |

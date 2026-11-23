@@ -8,7 +8,8 @@ const WORKSPACE_VIEWS = {
     stress: ["How could your portfolio react?", "Run a hypothetical stress test or replay a historical crisis.", ["stress-results", "crisis-results"]],
     risk: ["Where does the risk come from?", "Explore each asset's risk contribution and changing historical risk.", ["advanced-risk-results"]],
     planning: ["Work toward a financial goal.", "Explore savings schedules and inflation-adjusted outcomes over a longer horizon.", ["planning-results"]],
-    validation: ["How well do the models perform?", "Compare simulated distributions with later historical outcomes.", ["validation-results"]]
+    validation: ["How well do the models perform?", "Compare simulated distributions with later historical outcomes.", ["validation-results"]],
+    discovery: ["Explore potential additions.", "Compare hypothetical stocks and ETFs against your existing portfolio using historical evidence.", ["discovery-results"]]
 };
 
 function getWorkspaceView(hash) {
