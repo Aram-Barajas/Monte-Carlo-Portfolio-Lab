@@ -92,6 +92,11 @@ AMZN, 15</textarea>
                             <input id="end" type="date" value="2026-01-01" required>
                         </label>
                     </div>
+                    <label data-controls="overview simulation backtesting risk" for="analysis-rate">
+                        Annual risk-free rate assumption (%)
+                        <input id="analysis-rate" type="number" min="-5" max="50" step=".01" value="0">
+                        <small>Used for historical Sharpe ratios in overview, simulations, backtests and benchmarks. Zero is an assumption, not today's Treasury yield. Optimization and discovery use their separate rate controls.</small>
+                    </label>
 
                     <label class="shared-capital" data-controls="simulation backtesting stress planning" hidden>
                         Initial investment ($)
