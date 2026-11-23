@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from .market_data import (
-    _validate_prices,
+    align_price_history,
     calculate_daily_returns
 )
 
@@ -20,32 +20,7 @@ from .risk_metrics import calculate_historical_risk
 
 def align_backtest_prices(prices):
     """Trim to common price dates and reject gaps within them."""
-
-    prices = _validate_prices(prices)
-
-    start = max(
-        prices[column].first_valid_index()
-        for column in prices
-    )
-
-    end = min(
-        prices[column].last_valid_index()
-        for column in prices
-    )
-
-    prices = prices.loc[start:end]
-
-    if len(prices) < 3:
-        raise ValueError(
-            "At least three overlapping price dates are required."
-        )
-
-    if prices.isna().any().any():
-        raise ValueError(
-            "Backtest price history contains missing prices."
-        )
-
-    return prices
+    return align_price_history(prices, minimum_dates=3)
 
 
 def backtest_portfolio(

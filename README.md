@@ -14,6 +14,30 @@ Features include:
 - Missing data handling
 - Automated testing
 
+### Shared Historical Price History
+
+Historical analytics use consecutive complete price observations within the
+common date range of all selected assets. If an asset has a shorter history,
+leading and trailing observations outside that shared range are trimmed.
+
+Missing prices **inside** the shared range are rejected with the affected
+tickers and first missing date. Prices are not forward-filled, and returns
+around a gap are not silently dropped or treated as a single daily return.
+Choose assets with matching trading calendars or a complete date range.
+
+This policy applies to portfolio analysis, simulation, portfolio comparison,
+backtesting, benchmark comparison, optimization and the efficient frontier.
+The raw market-data endpoint still returns the downloaded price observations,
+including missing values. Historical analytics require at least two return
+observations (three complete shared price dates).
+
+The model uses 252 trading days per year, appropriate as an approximation for
+US stock and ETF trading. Ordinary weekends and holidays with no price rows
+are not treated as missing observations. Mixed trading calendars (such as
+stocks and continuously traded crypto) may be rejected. A consistent
+calendar other than a stock-market calendar is not yet modeled separately.
+Dates absent for every asset are not detectable without exchange calendars.
+
 ### Market Data Caching
 
 Historical adjusted closing prices are cached in server memory
@@ -94,7 +118,7 @@ historical price data.
 ### Comparing Portfolios
 
 Enable **Compare with a second portfolio** to compare Portfolio A with
-Portfolio B. Portfolio B. Enter a separate allocation using the same
+Portfolio B. Enter a separate allocation using the same
 rounding tolerance as Portfolio A. Both
 portfolios use the same initial investment, contributions, trading horizon,
 historical date range, overlapping historical observations and simulated
@@ -188,6 +212,17 @@ node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_back
 ```
 Node.js is required for frontend testing only, not for
 running the dashboard.
+
+### Financial Validation
+
+Regression tests verify that incomplete historical data cannot silently
+discard returns and that compounded returns reproduce the price ratio over
+complete shared histories. API tests exercise the actual alignment logic
+using mocked price downloads. Independent reference tests compare correlated
+portfolio optimization and efficient frontier solutions with closed-form
+solutions, and check backtest growth and contribution timing against known
+values. These tests validate calculations on controlled inputs; they do not
+establish forecast accuracy or validate a live data provider.
 
 ## Example Usage
 
@@ -438,7 +473,8 @@ than trading instructions.
 The engine is available through POST /api/optimize
 and the interactive API documentation.
 
-Dashboard integration is planned.
+The dashboard's Optimization workspace exposes the efficient frontier,
+including minimum-volatility and maximum-Sharpe reference allocations.
 
 ## Efficient Frontier
 
