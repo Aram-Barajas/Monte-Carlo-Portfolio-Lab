@@ -192,11 +192,11 @@ AMZN, 15</textarea>
 
                     <label for="simulation-model">Simulation model</label>
                     <select id="simulation-model" aria-describedby="model-hint">
-                        <option value="gaussian">Gaussian (fixed historical mean)</option>
-                        <option value="gaussian_uncertain">Gaussian (uncertain mean)</option>
+                        <option value="gaussian">Gaussian (fixed mean; conditional, not calibrated)</option>
+                        <option value="gaussian_uncertain" selected>Gaussian (uncertain historical mean; recommended baseline)</option>
                         <option value="block_bootstrap">Historical block bootstrap</option>
                     </select>
-                    <small id="model-hint">Choose a hypothetical return-generation model.</small>
+                    <small id="model-hint">The uncertain-mean model includes an IID sampling-error approximation, not a guarantee of real-market calibration.</small>
 
                     <label id="block-length-control" hidden>
                         Historical block length (trading days)
