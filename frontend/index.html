@@ -17,6 +17,7 @@
     <script src="/static/frontier.js" defer></script>
     <script src="/static/robust-optimization.js" defer></script>
     <script src="/static/advanced-risk.js" defer></script>
+    <script src="/static/planning.js" defer></script>
     <script src="/static/workspace.js" defer></script>
 
 </head>
@@ -54,6 +55,7 @@
             <a href="#optimization" data-workspace-tab="optimization">Optimization</a>
             <a href="#stress" data-workspace-tab="stress">Stress testing</a>
             <a href="#risk" data-workspace-tab="risk">Risk analytics</a>
+            <a href="#planning" data-workspace-tab="planning">Goal planning</a>
         </nav>
 
         <div class="layout">
@@ -77,7 +79,7 @@ AMZN, 15</textarea>
                         are normalized automatically. BRK.B is accepted.
                     </small>
 
-                    <div class="fields shared-fields" data-controls="overview simulation backtesting optimization risk">
+                    <div class="fields shared-fields" data-controls="overview simulation backtesting optimization risk planning">
                         <label>History start
                             <input id="start" type="date" value="2023-01-01" required>
                         </label>
@@ -86,7 +88,7 @@ AMZN, 15</textarea>
                         </label>
                     </div>
 
-                    <label class="shared-capital" data-controls="simulation backtesting stress" hidden>
+                    <label class="shared-capital" data-controls="simulation backtesting stress planning" hidden>
                         Initial investment ($)
                         <input id="initial" type="number" min="0" max="1000000000"
                                step="0.01" value="1000" required>
@@ -406,6 +408,47 @@ AMZN, 15</textarea>
                     <button id="run-risk-analysis" type="button">Analyze portfolio risk</button>
                     <p class="muted">Uses Portfolio A and history dates, assuming daily rebalancing.</p>
                     <p id="advanced-risk-status" class="muted" role="status" aria-live="polite">Ready to analyze risk.</p>
+                </div>
+                <div class="tool-controls" data-controls="planning" hidden>
+                    <h3>Long-term goal</h3>
+                    <label for="plan-goal">Target value (today's dollars)</label>
+                    <input id="plan-goal" type="number" min="0.01" max="1000000000" step="0.01" value="100000">
+                    <div class="fields">
+                        <label for="plan-years">Years to goal
+                            <input id="plan-years" type="number" min="1" max="40" step="1" value="20">
+                        </label>
+                        <label for="plan-monthly">Monthly investment ($)
+                            <input id="plan-monthly" type="number" min="0" max="1000000000" step="0.01" value="100">
+                        </label>
+                        <label for="plan-growth">Annual contribution increase (%)
+                            <input id="plan-growth" type="number" min="-10" max="25" step="0.1" value="0">
+                        </label>
+                        <label for="plan-inflation">Annual inflation (%)
+                            <input id="plan-inflation" type="number" min="-5" max="25" step="0.1" value="2.5">
+                        </label>
+                    </div>
+                    <label for="plan-probability">Desired modeled success (%)</label>
+                    <input id="plan-probability" type="number" min="50" max="99" step="1" value="80">
+                    <details class="robust-settings">
+                        <summary>Simulation assumptions</summary>
+                        <label for="plan-model">Return model</label>
+                        <select id="plan-model">
+                            <option value="gaussian_uncertain" selected>Gaussian with uncertain mean</option>
+                            <option value="gaussian">Gaussian returns</option>
+                            <option value="block_bootstrap">Historical block bootstrap</option>
+                        </select>
+                        <label for="plan-drift">Historical log-return drift retained (%)</label>
+                        <input id="plan-drift" type="number" min="0" max="100" step="1" value="50">
+                        <label id="plan-block-control" for="plan-block" hidden>Bootstrap block length (days)</label>
+                        <input id="plan-block" type="number" min="1" max="252" step="1" value="21" hidden>
+                        <label for="plan-paths">Simulated paths</label>
+                        <select id="plan-paths"><option>250</option><option selected>500</option><option>1000</option><option>2000</option></select>
+                        <label for="plan-seed">Random seed (optional)</label>
+                        <input id="plan-seed" type="number" min="0" max="4294967295" step="1" value="42">
+                    </details>
+                    <button id="run-plan" type="button">Evaluate financial goal</button>
+                    <p class="muted">Assumes daily fixed target weights, contributions at month end, no withdrawals or trading costs. A year has 252 trading days.</p>
+                    <p id="plan-status" class="muted" role="status" aria-live="polite">Ready to plan.</p>
                 </div>
             </aside>
 
@@ -1034,6 +1077,34 @@ AMZN, 15</textarea>
                             <svg id="rolling-volatility-chart" class="backtest-chart" role="img" aria-label="Rolling annualized volatility"></svg>
                         </div>
                         <p class="muted">Returns cover each trailing window and are not annualized. Volatility is annualized using 252 trading days. Historical estimates may change.</p>
+                    </section>
+                </div>
+                <div data-result-view="planning" hidden>
+                    <section id="planning-results" class="panel" hidden>
+                        <h2>Long-term goal planning | Portfolio A</h2>
+                        <p id="plan-summary" class="muted"></p>
+                        <div id="plan-metrics" class="metrics"></div>
+                        <h3>Projected purchasing power</h3>
+                        <svg id="plan-chart" class="backtest-chart" role="img" aria-label="Annual simulated percentile range and financial goal"></svg>
+                        <div class="legend">
+                            <span><i class="outer"></i>5th-95th percentile</span>
+                            <span><i class="median"></i>Median</span>
+                            <span><i class="comparison-color"></i>Goal (today's dollars)</span>
+                        </div>
+                        <h3>Monthly contribution sensitivity</h3>
+                        <p class="muted">Alternative starting contributions with the same market paths and annual contribution increase.</p>
+                        <div class="table-wrap">
+                            <table><thead><tr><th scope="col">Starting monthly contribution</th><th scope="col">Modeled goal success</th><th scope="col">Median ending value (today's dollars)</th></tr></thead>
+                                <tbody id="plan-sensitivity"></tbody></table>
+                        </div>
+                        <details class="robust-settings">
+                            <summary>Year-by-year projection</summary>
+                            <div class="table-wrap">
+                                <table><thead><tr><th scope="col">Year</th><th scope="col">5th percentile</th><th scope="col">Median</th><th scope="col">95th percentile</th><th scope="col">At or above goal</th><th scope="col">Contributed (nominal)</th></tr></thead>
+                                    <tbody id="plan-annual"></tbody></table>
+                            </div>
+                        </details>
+                        <p class="muted">All projected balances are in today's dollars. The goal probability applies at the selected horizon, not the probability of ever reaching it. The estimated required contribution is conditional on this model and sample; it is not a guarantee or a savings recommendation. No taxes, fees or withdrawals are modeled.</p>
                     </section>
                 </div>
             </section>

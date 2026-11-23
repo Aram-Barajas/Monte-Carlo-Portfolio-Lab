@@ -32,6 +32,7 @@ from .benchmark import compare_benchmark
 from .optimization import optimize_portfolio
 from .frontier import calculate_efficient_frontier
 from .robust_optimization import optimize_robust_portfolio
+from .planning import plan_portfolio
 from .portfolio_policy import inflation_factors
 from .advanced_risk import (
     CRISIS_WINDOWS, calculate_risk_contributions, calculate_rolling_risk,
@@ -298,6 +299,27 @@ class SimulationRequest(TradingPolicyRequest):
         return self
 
 
+class PlanningRequest(PortfolioRequest):
+    years: int = Field(default=20, ge=1, le=40)
+    num_simulations: int = Field(default=500, ge=1, le=2000)
+    initial_value: float = Field(default=1000, ge=0, le=1_000_000_000)
+    monthly_contribution: float = Field(default=100, ge=0, le=1_000_000_000)
+    contribution_growth: float = Field(default=0, ge=-.1, le=.25)
+    annual_inflation: float = Field(default=.025, ge=-.05, le=.25)
+    goal: float = Field(default=100000, ge=.01, le=1_000_000_000)
+    target_probability: float = Field(default=.8, ge=.5, le=.99)
+    model: Literal["gaussian", "gaussian_uncertain", "block_bootstrap"] = "gaussian_uncertain"
+    drift_weight: float = Field(default=.5, ge=0, le=1)
+    block_length: int = Field(default=21, ge=1, le=252)
+    seed: int | None = Field(default=None, ge=0, le=2**32 - 1)
+
+    @model_validator(mode="after")
+    def validate_plan_size(self):
+        if self.num_simulations * self.years * 252 * len(self.tickers) > 20_000_000:
+            raise ValueError("Planning simulation is too large. Reduce years, paths, or assets.")
+        return self
+
+
 class ComparisonRequest(SimulationRequest):
     comparison_weights: dict[str, float]
 
@@ -490,6 +512,20 @@ def simulate(request: SimulationRequest):
         if request.seed is None:
             request = request.model_copy(update={"seed": randbits(32)})
         return simulation_result(returns, request)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.post("/api/plan")
+def plan(request: PlanningRequest):
+    returns = load_market_data(request)
+    try:
+        result = plan_portfolio(
+            returns, request.weights, **request.model_dump(exclude={
+                "tickers", "weights", "start", "end", "confidence", "annual_risk_free_rate",
+            })
+        )
+        return {"start": request.start, "end": request.end, **result}
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 

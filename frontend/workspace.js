@@ -6,7 +6,8 @@ const WORKSPACE_VIEWS = {
     backtesting: ["Replay historical performance.", "Run a backtest or compare against a market benchmark.", ["backtest-results", "benchmark-results"]],
     optimization: ["Explore the risk-return tradeoff.", "Build an efficient frontier or compare robust allocations.", ["frontier-results", "robust-results"]],
     stress: ["How could your portfolio react?", "Run a hypothetical stress test or replay a historical crisis.", ["stress-results", "crisis-results"]],
-    risk: ["Where does the risk come from?", "Explore each asset's risk contribution and changing historical risk.", ["advanced-risk-results"]]
+    risk: ["Where does the risk come from?", "Explore each asset's risk contribution and changing historical risk.", ["advanced-risk-results"]],
+    planning: ["Work toward a financial goal.", "Explore savings schedules and inflation-adjusted outcomes over a longer horizon.", ["planning-results"]]
 };
 
 function getWorkspaceView(hash) {
