@@ -85,7 +85,8 @@ function initDiscoveryDashboard() {
             " | Risk-free rate: " + percent(data.annual_risk_free_rate) + " | " +
             Object.entries(data.weights).map(([ticker, weight]) => ticker + " " + percent(weight)).join(", ");
         $("discovery-ranking-note").textContent = "Ranked by " + objectiveNames[data.objective] +
-            " on training dates only; validation results do not change the rankings." +
+            " on training dates only; validation results do not change the rankings. Ranking the best of " +
+            (data.evaluated.length + data.excluded.length) + " candidates may select noise. This is not a buy recommendation." +
             (data.evaluated.length ? "" : " No candidates had sufficient eligible data.");
         rows("discovery-ranking", data.evaluated.map(item => [
             item.rank == null ? "N/A" : String(item.rank), item.ticker, decimal(item.training.candidate_correlation),
