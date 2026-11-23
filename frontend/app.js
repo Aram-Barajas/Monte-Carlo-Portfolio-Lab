@@ -531,7 +531,11 @@ function renderHistoricalOverview(analysis, comparison, payload, source) {
 
     $("overview-summary").textContent = `${source} | ${payload.start} to ${payload.end} (exclusive) | ` +
         `${analysis.tickers.length} assets | ${analysis.observations} daily returns. ` +
-        "Historical metrics assume daily rebalancing before trading costs. Results reflect the last completed analysis." + (comparison ? " Metrics and breakdown show Portfolio A; both correlation matrices are shown." : "");
+        "Historical metrics assume daily rebalancing before trading costs. " +
+        "Annual risk-free rate assumption: " + percent(Number(payload.annual_risk_free_rate ?? 0)) + ". " +
+        (analysis.data_quality?.source_note ?? "") + " " +
+        (analysis.data_quality?.warnings ?? []).join(" ") +
+        " Results reflect the last completed analysis." + (comparison ? " Metrics and breakdown show Portfolio A; both correlation matrices are shown." : "");
 
     metrics("historical", [
         [
