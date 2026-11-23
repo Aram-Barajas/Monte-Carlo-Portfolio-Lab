@@ -30,7 +30,7 @@ function parseHoldingsCsv(source) {
     if (quoted) throw new Error("Unclosed quoted field in CSV.");
     row.push(field.trim());
     if (row.some(value => value !== "")) rows.push(row);
-    if (rows.length < 2 || rows.length > 22) {
+    if (rows.length < 2 || rows.length > 21) {
         throw new Error("CSV must have headers and 1–20 holdings.");
     }
     const columns = rows.shift().map(value => value.toLowerCase());
