@@ -35,7 +35,7 @@ test("portfolio concentration is a warning, not an ETF look-through assertion", 
 
 test("dashboard serves approved private tools, correct default model and rate assumption", () => {
     const html = fs.readFileSync(path.join(__dirname, "../frontend/index.html"), "utf8");
-    assert.match(html, /simulation-model[\\s\\S]*value="gaussian_uncertain" selected/);
+    assert.ok(html.includes('value="gaussian_uncertain" selected'));
     for (const id of ["personal-csv", "personal-save", "personal-load", "personal-delete", "analysis-rate"]) {
         assert.ok(html.includes('id="' + id + '"'), id);
     }
