@@ -377,6 +377,55 @@ the same scale, followed by a side-by-side metrics table.
 Portfolio B and monthly contributions do not affect
 this comparison.
 
+## Portfolio Optimization
+
+The optimization engine uses historical arithmetic mean
+returns and annualized sample covariance to compare three
+portfolio strategies:
+
+- Current portfolio allocation
+- Minimum-volatility allocation
+- Maximum-Sharpe allocation
+
+The engine uses SciPy constrained optimization and assumes
+daily rebalancing and 252 trading days per year.
+
+### Allocation Constraints
+
+Optimized portfolios must satisfy the following:
+
+- Nonnegative allocation weights
+- Allocations totaling 100%
+- Optional maximum allocation per asset
+
+The maximum asset weight is expressed as a fraction.
+For example, 0.60 limits any individual asset to 60%
+of the optimized portfolio.
+
+The original allocation is reported unchanged, even if
+it exceeds the selected concentration limit.
+
+### Optimization Limitations
+
+Maximum-Sharpe results are unavailable when no feasible
+portfolio has positive estimated excess return or when
+the objective implies zero volatility.
+
+Historical estimates may change over time. Optimized
+allocations may be concentrated, unstable, or overfit
+to the selected historical period.
+
+Taxes, fees, turnover, and changing market conditions
+are not explicitly modeled.
+
+Results are intended for educational research rather
+than trading instructions.
+
+The engine is available through POST /api/optimize
+and the interactive API documentation.
+
+Dashboard integration is planned.
+
 ## Portfolio Stress Testing
 
 Select **Run portfolio stress test** to evaluate Portfolio A
@@ -430,6 +479,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/backtest` | Replay a portfolio over historical market prices |
 | POST | `/api/stress-test` | Evaluate hypothetical asset price shocks |
 | POST | `/api/benchmark` | Compare historical performance with a reference asset |
+| POST | `/api/optimize` | Compare minimum-volatility and maximum-Sharpe allocations |
 
 Historical dates use YYYY-MM-DD, with an exclusive end date.
 Portfolio weights are fractional allocations. Totals between
