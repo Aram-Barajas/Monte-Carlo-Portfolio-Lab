@@ -40,11 +40,16 @@ function updateWorkspaceEmpty(view, doc) {
     doc.getElementById("workspace-empty-description").textContent = description;
 }
 
-function buildOverviewPayload(allocation, start, end) {
+function buildOverviewPayload(allocation, start, end, riskFreePercent = null) {
     if (!start || !end || start >= end) {
         throw new Error("Select a valid historical date range.");
     }
-    return { ...allocation, start, end };
+    const rate = Number(riskFreePercent);
+    if (riskFreePercent !== null && (!Number.isFinite(rate) || rate < -5 || rate > 50)) {
+        throw new Error("Risk-free assumption must be between -5% and 50%.");
+    }
+    return { ...allocation, start, end,
+        ...(riskFreePercent === null ? {} : { annual_risk_free_rate: rate / 100 }) };
 }
 
 async function requestOverview(payload, fetcher = fetch) {
@@ -88,7 +93,8 @@ function initWorkspace() {
         button.disabled = true;
         status.className = "muted";
         try {
-            const payload = buildOverviewPayload(getAllocation("allocation"), $("start").value, $("end").value);
+            const payload = buildOverviewPayload(getAllocation("allocation"), $("start").value, $("end").value,
+                $("analysis-rate").value);
             status.textContent = "Analyzing historical returns...";
             const analysis = await requestOverview(payload);
             renderHistoricalOverview(analysis, null, payload, "Historical analysis");
