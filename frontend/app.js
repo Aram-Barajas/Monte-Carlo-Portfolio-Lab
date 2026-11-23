@@ -80,7 +80,12 @@ function getPortfolioPolicy() {
         !Number.isFinite(threshold) || threshold < .001 || threshold > 1) {
         throw new Error("Enter valid rebalancing and trading-cost assumptions.");
     }
-    return { rebalancing, trading_cost_bps: cost, rebalance_threshold: threshold };
+    const rate = Number($("analysis-rate").value);
+    if ($("analysis-rate").value === "" || !Number.isFinite(rate) || rate < -5 || rate > 50) {
+        throw new Error("Risk-free assumption must be between -5% and 50%.");
+    }
+    return { rebalancing, trading_cost_bps: cost, rebalance_threshold: threshold,
+        annual_risk_free_rate: rate / 100 };
 }
 
 function formatTradingPolicy(data) {
@@ -233,6 +238,7 @@ function getPayload() {
         trading_days: number("years") * 252,
         num_simulations: number("paths"),
         confidence: number("confidence") / 100,
+        annual_risk_free_rate: Number($("analysis-rate").value) / 100,
         ...getPortfolioPolicy(),
         annual_inflation: number("annual-inflation") / 100,
         model: $("simulation-model").value,
