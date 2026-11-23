@@ -44,20 +44,17 @@ function buildCsvRows(snapshot, format) {
 
     // Projected percentile bands.
 
-    if (format === "projections") {
+    if (format === "projections" || format === "real-projections") {
+        const real = format === "real-projections";
         return [
             [
                 "portfolio",
                 "trading_day",
-                "p05",
-                "p25",
-                "median",
-                "p75",
-                "p95"
+                ...["p05", "p25", "median", "p75", "p95"].map(key => real ? `real_${key}` : key)
             ],
 
             ...portfolios.flatMap(([name, result]) =>
-                result.percentiles.map(point => [
+                (real ? result.real_percentiles : result.percentiles).map(point => [
                     name,
                     point.trading_day,
                     point.p05,
@@ -154,6 +151,12 @@ function buildCsvRows(snapshot, format) {
                 "model",
                 "block_length",
                 "drift_weight",
+                "rebalancing",
+                "trading_cost_bps",
+                "rebalance_threshold",
+                "annual_inflation",
+                "median_trading_costs",
+                "real_median_ending_value",
                 "observations",
                 "confidence",
                 "annual_risk_free_rate",
@@ -193,6 +196,12 @@ function buildCsvRows(snapshot, format) {
                     result.model ?? payload.model ?? "gaussian",
                     (result.model ?? payload.model) === "block_bootstrap" ? result.block_length ?? payload.block_length : null,
                     result.drift_weight ?? payload.drift_weight ?? 1,
+                    result.rebalancing ?? "daily",
+                    result.trading_cost_bps ?? 0,
+                    result.rebalance_threshold ?? null,
+                    result.annual_inflation ?? 0,
+                    result.median_trading_costs ?? 0,
+                    (result.real_percentiles ?? result.percentiles).at(-1).median,
                     analysis.observations,
                     risk.confidence,
                     payload.annual_risk_free_rate ?? 0,

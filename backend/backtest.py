@@ -1,4 +1,4 @@
-"""Replay historical returns for a fixed-weight portfolio."""
+"""Replay historical returns with configurable portfolio trading policies."""
 
 from numbers import Real
 
@@ -12,8 +12,9 @@ from .market_data import (
 
 from .portfolio_metrics import (
     TRADING_DAYS,
-    calculate_portfolio_returns
+    validate_weights
 )
+from .portfolio_policy import PortfolioTracker
 
 from .risk_metrics import calculate_historical_risk
 
@@ -28,9 +29,13 @@ def backtest_portfolio(
     weights,
     initial_value=1000,
     confidence=0.95,
-    annual_risk_free_rate=0.0
+    annual_risk_free_rate=0.0,
+    *,
+    rebalancing="daily",
+    trading_cost_bps=0,
+    rebalance_threshold=.05
 ):
-    """Backtest a daily rebalanced portfolio without cash flows."""
+    """Backtest a portfolio without cash flows."""
 
     if (
         isinstance(initial_value, bool)
@@ -46,10 +51,10 @@ def backtest_portfolio(
 
     returns = calculate_daily_returns(prices)
 
-    portfolio = calculate_portfolio_returns(
-        returns,
-        weights
-    )
+    ordered = validate_weights(weights, returns.columns).to_numpy()
+    tracker = PortfolioTracker(ordered, initial_value, 1, rebalancing=rebalancing,
+                               trading_cost_bps=trading_cost_bps,
+                               rebalance_threshold=rebalance_threshold)
 
     try:
         with np.errstate(
@@ -57,15 +62,13 @@ def backtest_portfolio(
             invalid="raise",
             divide="raise"
         ):
-            # Calculate cumulative portfolio growth.
-            growth = np.concatenate((
-                [1.0],
-                np.cumprod(
-                    1 + portfolio.to_numpy()
-                )
-            ))
-
-            values = initial_value * growth
+            values = np.empty(len(returns) + 1)
+            values[0] = initial_value
+            for day, row in enumerate(returns.to_numpy(), start=1):
+                values[day] = tracker.advance(1 + row, day)[0]
+            growth = values / initial_value
+            # All metrics use the realized path, net of charged trading costs.
+            portfolio = pd.Series(values[1:] / values[:-1] - 1, index=returns.index)
 
             # Calculate historical drawdowns.
             peaks = np.maximum.accumulate(growth)
@@ -102,8 +105,8 @@ def backtest_portfolio(
         )
 
     risk = calculate_historical_risk(
-        returns,
-        weights,
+        portfolio.to_frame("portfolio"),
+        {"portfolio": 1.0},
         confidence,
         annual_risk_free_rate
     )
@@ -140,6 +143,11 @@ def backtest_portfolio(
         "max_drawdown": float(drawdowns.max()),
 
         "observations": len(portfolio),
+
+        "rebalancing": rebalancing,
+        "trading_cost_bps": trading_cost_bps,
+        "rebalance_threshold": rebalance_threshold if rebalancing == "threshold" else None,
+        "trading_costs": float(tracker.costs[0]),
 
         "trajectory": trajectory
     }

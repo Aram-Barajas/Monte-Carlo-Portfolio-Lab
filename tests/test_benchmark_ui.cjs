@@ -252,6 +252,8 @@ test("dashboard renders independent benchmark results and preserves them on erro
             buildBacktestPayload,
 
             getAllocation: () => allocation,
+            getPortfolioPolicy: () => ({ rebalancing: "monthly", trading_cost_bps: 20, rebalance_threshold: .05 }),
+            formatTradingPolicy: () => "Monthly | 20 bps per side",
 
             element: (tag, text) => node(text),
 
@@ -292,7 +294,7 @@ test("dashboard renders independent benchmark results and preserves them on erro
 
     assert.equal(
         $("benchmark-table").children.length,
-        7
+        8
     );
 
     assert.match(
@@ -316,7 +318,7 @@ test("dashboard renders independent benchmark results and preserves them on erro
 
     assert.equal(
         $("benchmark-table").children.length,
-        7
+        8
     );
 
     assert.match(

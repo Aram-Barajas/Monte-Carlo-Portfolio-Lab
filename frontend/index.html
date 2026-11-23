@@ -89,6 +89,27 @@ AMZN, 15</textarea>
                                step="0.01" value="1000" required>
                     </label>
 
+                <div class="tool-controls" data-controls="simulation backtesting" hidden>
+                    <h3>Trading assumptions</h3>
+                    <label for="rebalancing">Rebalancing policy</label>
+                    <select id="rebalancing">
+                        <option value="daily">Daily</option>
+                        <option value="monthly">Monthly (21 trading days)</option>
+                        <option value="quarterly">Quarterly (63 trading days)</option>
+                        <option value="annual">Annual (252 trading days)</option>
+                        <option value="buy_hold">Buy and hold</option>
+                        <option value="threshold">Threshold-based</option>
+                    </select>
+                    <label id="rebalance-threshold-control" hidden>
+                        Rebalance threshold (percentage points)
+                        <input id="rebalance-threshold" type="number" min="0.1" max="100" step="0.1" value="5">
+                    </label>
+                    <label class="shared-capital">Trading cost (basis points per side)
+                        <input id="trading-cost-bps" type="number" min="0" max="500" step="0.1" value="0">
+                    </label>
+                    <small>100 basis points = 1%. Costs apply to traded value and contribution purchases, not existing initial holdings.</small>
+                </div>
+
                 <div class="tool-controls" data-controls="overview">
                     <button id="run-overview" type="button">Analyze portfolio</button>
                     <p id="overview-status" class="muted" role="status" aria-live="polite">Ready to analyze.</p>
@@ -181,6 +202,10 @@ AMZN, 15</textarea>
                         <option value="0">0% (zero log-return drift)</option>
                     </select>
                     <small id="drift-hint">Test sensitivity to historical return assumptions. Zero log drift does not imply zero arithmetic return.</small>
+
+                    <label for="annual-inflation">Assumed annual inflation (%)</label>
+                    <input id="annual-inflation" type="number" min="-5" max="25" step="0.1" value="0" required>
+                    <small>Converts projected values into starting-dollar purchasing power. This is a constant scenario assumption, not an inflation forecast.</small>
 
                     <button id="run" type="submit">
                         Run simulation
@@ -358,7 +383,7 @@ AMZN, 15</textarea>
 
                     <section class="panel chart-panel" aria-label="Simulation limitations">
                         <h2>Interpret the scenarios carefully</h2>
-                        <p class="muted">These outcomes depend on the selected history and model assumptions. Percentile bands are simulated scenario ranges, not confidence intervals or guarantees. Loss frequency counts paths ending below nominal contributed capital; taxes, fees and inflation are excluded. None of these models captures all future market or estimation uncertainty.</p>
+                        <p class="muted">These outcomes depend on the selected history and model assumptions. Percentile bands are simulated scenario ranges, not confidence intervals or guarantees. Loss frequency counts paths ending below nominal contributed capital after modeled trading costs; tax and inflation effects are excluded from that metric. None of these models captures all future market or estimation uncertainty.</p>
                     </section>
 
                     <details class="panel export-panel">
@@ -381,6 +406,7 @@ AMZN, 15</textarea>
                                     <option value="projections">
                                         Projected percentile bands
                                     </option>
+                                    <option value="real-projections">Inflation-adjusted percentile bands</option>
 
                                     <option value="ending-values">
                                         Simulated ending values
@@ -412,10 +438,13 @@ AMZN, 15</textarea>
 
                     <section class="panel chart-panel">
                         <h2>Projected portfolio value</h2>
-
-                        <p class="muted">
-                            Daily rebalancing | 252 trading days per year
-                        </p>
+                        <p class="muted" id="simulation-policy-summary"></p>
+                        <label for="chart-dollar-mode">Chart values</label>
+                        <select id="chart-dollar-mode">
+                            <option value="nominal">Nominal dollars</option>
+                            <option value="real">Inflation-adjusted starting dollars</option>
+                        </select>
+                        <p class="muted" id="chart-dollar-note">Nominal dollars; 252 trading days per year.</p>
 
                         <svg id="chart"
                              role="img"
@@ -685,8 +714,8 @@ AMZN, 15</textarea>
 
                     </section>
                     <p class="muted">
-                        Hypothetical fixed allocation with daily rebalancing.
-                        No cash flows, fees or taxes. Past performance is
+                        Hypothetical portfolio with the submitted rebalancing and trading-cost settings.
+                        No recurring cash flows, taxes or separate fund fees. Past performance is
                         not a guarantee of future results.
                     </p>
 
@@ -750,7 +779,7 @@ AMZN, 15</textarea>
                     </div>
 
                     <p class="muted">
-                        Both investments use identical dates and initial capital.
+                        Both investments use identical dates and initial capital. Portfolio trading costs are modeled; the single-asset benchmark is buy-and-hold without transaction costs.
                         Return differences are in percentage points (pp), not alpha.
                         Past performance is not a guarantee of future results.
                     </p>
@@ -906,7 +935,7 @@ AMZN, 15</textarea>
         <footer>
             For educational research only. Historical data and
             simulated outcomes do not guarantee future returns.
-            Taxes, fees and inflation are not modeled.
+            Taxes and separate fund fees are not modeled. Trading-cost and inflation assumptions apply only where specified.
         </footer>
     </main>
 </body>

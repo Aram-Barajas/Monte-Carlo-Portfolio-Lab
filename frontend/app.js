@@ -12,6 +12,8 @@ const number = id => Number($(id).value);
 
 let currentBands = null;
 let comparisonBands = null;
+let nominalBands = null, nominalComparisonBands = null;
+let realBands = null, realComparisonBands = null;
 
 let lastExport = null;
 
@@ -59,6 +61,43 @@ function updateSimulationModelControls() {
 
 $("simulation-model").addEventListener("change", updateSimulationModelControls);
 updateSimulationModelControls();
+
+const REBALANCE_LABELS = {daily: "Daily", monthly: "Monthly", quarterly: "Quarterly",
+    annual: "Annual", buy_hold: "Buy and hold", threshold: "Threshold-based"};
+
+function updateRebalancingControls() {
+    $("rebalance-threshold-control").hidden = $("rebalancing").value !== "threshold";
+}
+$("rebalancing").addEventListener("change", updateRebalancingControls);
+updateRebalancingControls();
+
+function getPortfolioPolicy() {
+    const rebalancing = $("rebalancing").value;
+    const cost = number("trading-cost-bps");
+    const threshold = rebalancing === "threshold" ? number("rebalance-threshold") / 100 : .05;
+    if (!Object.hasOwn(REBALANCE_LABELS, rebalancing) || $("trading-cost-bps").value === "" ||
+        !Number.isFinite(cost) || cost < 0 || cost > 500 ||
+        !Number.isFinite(threshold) || threshold < .001 || threshold > 1) {
+        throw new Error("Enter valid rebalancing and trading-cost assumptions.");
+    }
+    return { rebalancing, trading_cost_bps: cost, rebalance_threshold: threshold };
+}
+
+function formatTradingPolicy(data) {
+    const policy = data.rebalancing ?? "daily";
+    return `${REBALANCE_LABELS[policy]} | ${data.trading_cost_bps ?? 0} bps per side` +
+        (policy === "threshold" ? ` | ${((data.rebalance_threshold ?? .05) * 100).toFixed(1)} pp threshold` : "");
+}
+
+function updateChartDollars() {
+    if (!nominalBands) return;
+    const real = $("chart-dollar-mode").value === "real";
+    currentBands = real ? realBands : nominalBands;
+    comparisonBands = real ? realComparisonBands : nominalComparisonBands;
+    $("chart-dollar-note").textContent = real ? "Starting-dollar purchasing power; constant inflation assumption." : "Nominal dollars; 252 trading days per year.";
+    drawChart(currentBands, comparisonBands);
+}
+$("chart-dollar-mode").addEventListener("change", updateChartDollars);
 
 // Light and dark mode
 
@@ -194,6 +233,8 @@ function getPayload() {
         trading_days: number("years") * 252,
         num_simulations: number("paths"),
         confidence: number("confidence") / 100,
+        ...getPortfolioPolicy(),
+        annual_inflation: number("annual-inflation") / 100,
         model: $("simulation-model").value,
         block_length: $("simulation-model").value === "block_bootstrap" ? number("block-length") : 5,
         drift_weight: number("drift-weight") / 100,
@@ -421,6 +462,8 @@ function render(data, comparison = null, seed = null, payload) {
         (model === "block_bootstrap" ? ` | ${blockLength}-day blocks` : "") +
         (actualSeed != null ? ` | Seed: ${actualSeed}` : "") +
         `. ${SIMULATION_MODELS[model][1]}`;
+    $("simulation-policy-summary").textContent = `${formatTradingPolicy(data)} | ${percent(data.annual_inflation ?? 0)} annual inflation`;
+    const realLast = (data.real_percentiles ?? percentiles).at(-1);
 
     metrics("metrics", [
         [
@@ -438,7 +481,9 @@ function render(data, comparison = null, seed = null, payload) {
         [
             "Simulated loss frequency (nominal)",
             percent(risk.probability_of_loss)
-        ]
+        ],
+        ["Median ending value (starting dollars)", money(realLast.median)],
+        ["Median cumulative trading costs", money(data.median_trading_costs ?? 0)]
     ], true);
 
     metrics("risk", [
@@ -450,8 +495,12 @@ function render(data, comparison = null, seed = null, payload) {
 
     $("results").hidden = false;
 
-    currentBands = percentiles;
-    comparisonBands = comparison ? comparison.percentiles : null;
+    nominalBands = currentBands = percentiles;
+    nominalComparisonBands = comparisonBands = comparison ? comparison.percentiles : null;
+    realBands = data.real_percentiles ?? percentiles;
+    realComparisonBands = comparison ? comparison.real_percentiles ?? comparison.percentiles : null;
+    $("chart-dollar-mode").value = "nominal";
+    $("chart-dollar-note").textContent = "Nominal dollars; 252 trading days per year.";
 
     $("chart-day").max = String(currentBands.length - 1);
     $("chart-day").value = $("chart-day").max;
@@ -476,7 +525,7 @@ function renderHistoricalOverview(analysis, comparison, payload, source) {
 
     $("overview-summary").textContent = `${source} | ${payload.start} to ${payload.end} (exclusive) | ` +
         `${analysis.tickers.length} assets | ${analysis.observations} daily returns. ` +
-        "Results reflect the last completed analysis." + (comparison ? " Metrics and breakdown show Portfolio A; both correlation matrices are shown." : "");
+        "Historical metrics assume daily rebalancing before trading costs. Results reflect the last completed analysis." + (comparison ? " Metrics and breakdown show Portfolio A; both correlation matrices are shown." : "");
 
     metrics("historical", [
         [
@@ -665,6 +714,8 @@ function renderComparison(a, b, seed) {
     const range = item => `${money(item.percentiles.at(-1).p05)} - ${money(item.percentiles.at(-1).p95)}`;
     const rows = [
         ["Median ending value", money(ar.median_ending_value), money(br.median_ending_value)],
+        ["Median ending value (starting dollars)", money((a.real_percentiles ?? a.percentiles).at(-1).median), money((b.real_percentiles ?? b.percentiles).at(-1).median)],
+        ["Median cumulative trading costs", money(a.median_trading_costs ?? 0), money(b.median_trading_costs ?? 0)],
         ["5th-95th percentile at end", range(a), range(b)],
         ["Simulated loss frequency (nominal)", percent(ar.probability_of_loss), percent(br.probability_of_loss)],
         ["Annualized return (arithmetic)", percent(ap.annualized_return), percent(bp.annualized_return)],
@@ -673,7 +724,7 @@ function renderComparison(a, b, seed) {
     ];
     $("comparison-summary").textContent =
         `Shared random seed: ${seed}. ` +
-        "Simulation summary and downside risk show Portfolio A. Historical analysis is available in Overview.";
+        "Simulation summary and downside risk show Portfolio A. Historical return, volatility and drawdown use daily rebalancing before trading costs.";
     $("comparison-table").replaceChildren(...rows.map(([label, first, second]) => {
         const row = element("tr");
         const heading = element("th", label);

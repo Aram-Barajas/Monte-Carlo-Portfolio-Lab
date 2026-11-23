@@ -51,6 +51,14 @@ test("backtest payload includes only supported settings", () => {
     });
 });
 
+test("backtest payload retains shared trading assumptions", () => {
+    const policy = {rebalancing: "annual", trading_cost_bps: 30, rebalance_threshold: .05};
+    const payload = buildBacktestPayload(allocation, "2025-01-01", "2026-01-01", "1000", policy);
+    assert.equal(payload.rebalancing, "annual");
+    assert.equal(payload.trading_cost_bps, 30);
+    assert.equal(payload.rebalance_threshold, .05);
+});
+
 
 test("rejects invalid historical dates and investments", () => {
     assert.throws(() => buildBacktestPayload(
