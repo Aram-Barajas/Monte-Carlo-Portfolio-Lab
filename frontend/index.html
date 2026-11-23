@@ -15,6 +15,7 @@
     <script src="/static/stress-test.js" defer></script>
     <script src="/static/benchmark.js" defer></script>
     <script src="/static/frontier.js" defer></script>
+    <script src="/static/workspace.js" defer></script>
 
 </head>
 <body>
@@ -33,23 +34,29 @@
         </div>
     </header>
 
-    <main>
+    <main id="workspace">
         <div class="intro">
             <p class="eyebrow">INVESTMENT RESEARCH / 01</p>
 
-            <h1>Explore your portfolio.</h1>
+            <h1>Portfolio research.</h1>
 
             <p>
-                Model potential outcomes using historical returns
-                and correlated Monte Carlo simulations.
+                Analyze historical performance, model outcomes and explore risk.
             </p>
         </div>
 
+        <nav class="workspace-nav" aria-label="Research tools">
+            <a href="#overview" data-workspace-tab="overview" aria-current="page">Overview</a>
+            <a href="#simulation" data-workspace-tab="simulation">Simulation</a>
+            <a href="#backtesting" data-workspace-tab="backtesting">Backtesting</a>
+            <a href="#optimization" data-workspace-tab="optimization">Optimization</a>
+            <a href="#stress" data-workspace-tab="stress">Stress testing</a>
+        </nav>
+
         <div class="layout">
             <aside class="panel settings">
-                <h2>Simulation settings</h2>
+                <h2>Portfolio settings</h2>
 
-                <form id="simulation-form">
                     <label for="allocation">
                         Portfolio A allocation (%)
                     </label>
@@ -67,6 +74,29 @@ AMZN, 15</textarea>
                         are normalized automatically. BRK.B is accepted.
                     </small>
 
+                    <div class="fields shared-fields" data-controls="overview simulation backtesting optimization">
+                        <label>History start
+                            <input id="start" type="date" value="2023-01-01" required>
+                        </label>
+                        <label>History end
+                            <input id="end" type="date" value="2026-01-01" required>
+                        </label>
+                    </div>
+
+                    <label class="shared-capital" data-controls="simulation backtesting stress" hidden>
+                        Initial investment ($)
+                        <input id="initial" type="number" min="0" max="1000000000"
+                               step="0.01" value="1000" required>
+                    </label>
+
+                <div class="tool-controls" data-controls="overview">
+                    <button id="run-overview" type="button">Analyze portfolio</button>
+                    <p id="overview-status" class="muted" role="status" aria-live="polite">Ready to analyze.</p>
+                </div>
+
+                <div class="tool-controls" data-controls="simulation" hidden>
+                <form id="simulation-form">
+                    <h3>Simulation settings</h3>
                     <label class="compare-switch">
                         <input id="compare-enabled" type="checkbox">
                         Compare with a second portfolio
@@ -86,25 +116,6 @@ AMZN, 15</textarea>
                     </div>
 
                     <div class="fields">
-                        <label>
-                            History start
-                            <input id="start" type="date"
-                                   value="2023-01-01" required>
-                        </label>
-
-                        <label>
-                            History end
-                            <input id="end" type="date"
-                                   value="2026-01-01" required>
-                        </label>
-
-                        <label>
-                            Initial investment ($)
-                            <input id="initial" type="number"
-                                   min="0" max="1000000000"
-                                   step="0.01" value="1000" required>
-                        </label>
-
                         <label>
                             Monthly contribution ($)
                             <input id="monthly" type="number"
@@ -157,7 +168,8 @@ AMZN, 15</textarea>
                 <p id="status" role="status" aria-live="polite">
                     Ready to simulate.
                 </p>
-                <div class="backtest-controls">
+                </div>
+                <div class="backtest-controls" data-controls="backtesting" hidden>
 
                     <button id="run-backtest"
                             type="button"
@@ -179,7 +191,7 @@ AMZN, 15</textarea>
 
                 </div>
 
-                <div class="benchmark-controls">
+                <div class="benchmark-controls" data-controls="backtesting" hidden>
 
                     <label for="benchmark-ticker">
                         Benchmark ticker
@@ -212,7 +224,7 @@ AMZN, 15</textarea>
 
                 </div>
 
-                <div class="frontier-controls">
+                <div class="frontier-controls" data-controls="optimization" hidden>
 
                     <label for="frontier-cap">
                         Maximum asset weight (%)
@@ -255,7 +267,7 @@ AMZN, 15</textarea>
 
                 </div>
 
-                <div class="stress-controls">
+                <div class="stress-controls" data-controls="stress" hidden>
 
                     <label class="compare-switch">
                         <input id="stress-custom-enabled" type="checkbox">
@@ -308,20 +320,21 @@ AMZN, 15</textarea>
                         YOUR RESEARCH WORKSPACE
                     </p>
 
-                    <h2>What might the future hold?</h2>
+                    <h2 id="workspace-empty-title">Understand your portfolio.</h2>
 
-                    <p>
-                        Configure an allocation and run a simulation
-                        to explore a range of hypothetical outcomes.
+                    <p id="workspace-empty-description">
+                        Analyze your allocation over the selected historical period.
                     </p>
                 </div>
 
+                <div data-result-view="simulation" hidden>
                 <div id="results" hidden>
 
                     <p id="summary" class="eyebrow"></p>
+                    <p id="simulation-input-summary" class="muted"></p>
 
-                    <section class="panel export-panel">
-                        <h2>Export simulation data</h2>
+                    <details class="panel export-panel">
+                        <summary>Export simulation data (CSV)</summary>
 
                         <p class="muted">
                             Download the last successful results as CSV,
@@ -365,7 +378,7 @@ AMZN, 15</textarea>
                            role="status"
                            aria-live="polite">
                         </p>
-                    </section>
+                    </details>
 
                     <div class="metrics" id="metrics"></div>
 
@@ -501,17 +514,18 @@ AMZN, 15</textarea>
                         </div>
                     </section>
 
-                    <div class="detail-grid">
-                        <section class="panel">
-                            <h2>Historical performance</h2>
-                            <dl id="historical"></dl>
-                        </section>
-
-                        <section class="panel">
+                    <section class="panel chart-panel">
                             <h2>Terminal downside risk</h2>
                             <dl id="risk"></dl>
-                        </section>
-                    </div>
+                    </section>
+                </div>
+                </div>
+
+                <div data-result-view="overview">
+                <div id="overview-results" hidden>
+                    <h2>Portfolio overview</h2>
+                    <p id="overview-summary" class="muted"></p>
+                    <div class="metrics" id="historical"></div>
 
                     <section class="panel chart-panel">
                         <h2>Asset correlation heatmap</h2>
@@ -595,7 +609,9 @@ AMZN, 15</textarea>
                         </div>
                     </section>
                 </div>
+                </div>
 
+                <div data-result-view="backtesting" hidden>
                 <section id="backtest-results"
                          aria-label="Historical backtest results"
                          hidden>
@@ -712,6 +728,8 @@ AMZN, 15</textarea>
                     </p>
 
                 </section>
+                </div>
+                <div data-result-view="optimization" hidden>
                 <section id="frontier-results"
                          class="panel chart-panel"
                          aria-label="Efficient frontier results"
@@ -787,6 +805,8 @@ AMZN, 15</textarea>
 
                 </section>
 
+                </div>
+                <div data-result-view="stress" hidden>
                 <section id="stress-results"
                          class="panel chart-panel"
                          aria-label="Portfolio stress test results"
@@ -851,6 +871,7 @@ AMZN, 15</textarea>
 
 
 
+                </div>
             </section>
         </div>
 

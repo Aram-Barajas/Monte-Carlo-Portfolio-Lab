@@ -162,6 +162,20 @@ Undefined correlations and Sharpe ratios are blank.
 The summary includes simulation settings and the known
 random seed, when available.
 
+## Research Workspace
+
+Use the navigation to switch between Overview, Simulation, Backtesting,
+Optimization and Stress testing. Each view displays its own controls and
+results. Portfolio A and applicable dates/capital are shared; switching
+views preserves entered settings and completed results until page reload.
+Browser back and forward navigation works through URL fragments.
+
+Overview can analyze historical data without running a Monte Carlo simulation.
+Successful simulations also populate the historical overview with their
+submitted analysis (including Portfolio B correlations when comparing).
+Result panels reflect the last completed request, not unsaved input changes.
+CSV export is available from a collapsible control in Simulation.
+
 ## Running Tests
 
 ```bash
@@ -170,7 +184,8 @@ python -m pytest -v
 JavaScript export tests:
 
 ```bash
-node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs tests/test_benchmark_ui.cjs tests/test_frontier_ui.cjs```
+node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs tests/test_benchmark_ui.cjs tests/test_frontier_ui.cjs tests/test_workspace_ui.cjs
+```
 Node.js is required for frontend testing only, not for
 running the dashboard.
 

@@ -1,0 +1,123 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const {
+    getWorkspaceView, applyWorkspaceView, updateWorkspaceEmpty,
+    buildOverviewPayload, requestOverview
+} = require("../frontend/workspace.js");
+
+function mockWorkspace() {
+    const views = ["overview", "simulation", "backtesting", "optimization", "stress"];
+    const links = views.map(view => ({ dataset: { workspaceTab: view }, attrs: {},
+        setAttribute(key, value) { this.attrs[key] = value; },
+        removeAttribute(key) { delete this.attrs[key]; } }));
+    const controls = ["overview simulation backtesting optimization", "simulation backtesting stress", ...views]
+        .map(value => ({ dataset: { controls: value }, hidden: false, value: "preserved" }));
+    const panels = views.map(view => ({ dataset: { resultView: view }, hidden: false }));
+    const nodes = Object.fromEntries([
+        "empty", "workspace-empty-title", "workspace-empty-description", "overview-results",
+        "results", "backtest-results", "benchmark-results", "frontier-results", "stress-results"
+    ].map(id => [id, { hidden: true, textContent: "" }]));
+    return { links, controls, panels, nodes, doc: {
+        querySelectorAll(selector) {
+            return { "[data-workspace-tab]": links, "[data-controls]": controls,
+                "[data-result-view]": panels }[selector];
+        },
+        getElementById(id) { return nodes[id]; }
+    } };
+}
+
+test("URL fragments select valid workspaces", () => {
+    assert.equal(getWorkspaceView("#optimization"), "optimization");
+    for (const fragment of ["", "#unknown", "#constructor"]) {
+        assert.equal(getWorkspaceView(fragment), "overview");
+    }
+});
+
+test("navigation reveals only relevant controls and preserves results and inputs", () => {
+    const { links, controls, panels, nodes, doc } = mockWorkspace();
+    nodes.results.hidden = false;
+    applyWorkspaceView("stress", doc);
+    assert.equal(links[4].attrs["aria-current"], "page");
+    assert.equal(controls[0].hidden, true); // dates
+    assert.equal(controls[1].hidden, false); // capital
+    assert.equal(controls[3].hidden, true); // simulation
+    assert.deepEqual(panels.map(panel => panel.hidden), [true, true, true, true, false]);
+    assert.equal(nodes.results.hidden, false);
+    assert.equal(nodes.empty.hidden, false);
+    applyWorkspaceView("simulation", doc);
+    assert.equal(controls[0].value, "preserved");
+    assert.equal(controls[3].hidden, false);
+    assert.equal(nodes.empty.hidden, true);
+    assert.equal(links[4].attrs["aria-current"], undefined);
+});
+
+test("background requests do not hide another view's empty state", () => {
+    const { nodes, doc } = mockWorkspace();
+    applyWorkspaceView("optimization", doc);
+    nodes["backtest-results"].hidden = false;
+    nodes.empty.hidden = true;
+    updateWorkspaceEmpty("optimization", doc);
+    assert.equal(nodes.empty.hidden, false);
+    applyWorkspaceView("backtesting", doc);
+    assert.equal(nodes.empty.hidden, true);
+});
+
+test("overview retrieves only historical portfolio data", async () => {
+    const allocation = { tickers: ["VTI"], weights: { VTI: 1 } };
+    const payload = buildOverviewPayload(allocation, "2025-01-01", "2026-01-01");
+    assert.deepEqual(payload, { ...allocation, start: "2025-01-01", end: "2026-01-01" });
+    assert.throws(() => buildOverviewPayload(allocation, "", "2026-01-01"), /date range/);
+    const result = await requestOverview(payload, async (url, options) => {
+        assert.equal(url, "/api/portfolio");
+        assert.equal(options.method, "POST");
+        assert.deepEqual(JSON.parse(options.body), payload);
+        return { ok: true, json: async () => ({ observations: 252 }) };
+    });
+    assert.equal(result.observations, 252);
+    await assert.rejects(requestOverview(payload, async () => ({ ok: false,
+        json: async () => ({ detail: [{ msg: "Missing data" }] }) })), /Missing data/);
+});
+
+test("historical overview renders independently and simulation updates both views", () => {
+    function node(text) {
+        return { textContent: text, children: [], hidden: true, clientWidth: 800,
+            addEventListener() {}, setAttribute() {},
+            append(...items) { this.children.push(...items); },
+            replaceChildren(...items) { this.children = items; } };
+    }
+    const nodes = new Map();
+    const find = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
+    const context = vm.createContext({
+        document: { getElementById: find, createElement: () => node(), createElementNS: () => node(), documentElement: { dataset: {} } },
+        window: { matchMedia: () => ({ matches: false }), addEventListener() {} },
+        localStorage: { getItem: () => "light" }, attachChartInspection() {}
+    });
+    vm.runInContext(fs.readFileSync(require.resolve("../frontend/app.js"), "utf8"), context);
+    const analysis = { tickers: ["VTI"], weights: { VTI: 1 }, observations: 252,
+        portfolio_metrics: { annualized_return: .1, annualized_volatility: .2 },
+        historical_risk: { sharpe_ratio: .5, max_drawdown: .12 },
+        asset_metrics: [{ ticker: "VTI", annualized_return: .1, annualized_volatility: .2 }],
+        correlation: [{ ticker: "VTI", VTI: 1 }] };
+    const payload = { start: "2025-01-01", end: "2026-01-01" };
+    context.renderHistoricalOverview(analysis, null, payload, "Historical analysis");
+    assert.equal(find("overview-results").hidden, false);
+    assert.equal(find("results").hidden, true);
+    assert.equal(find("historical").children.length, 4);
+    assert.equal(find("assets").children.length, 1);
+    assert.match(find("overview-summary").textContent, /2025-01-01/);
+    const band = { p05: 1000, p25: 1000, median: 1000, p75: 1000, p95: 1000 };
+    const simulation = { analysis, num_simulations: 500, trading_days: 252,
+        simulation_risk: { median_ending_value: 1000, total_invested: 1000, probability_of_loss: .1,
+            confidence: .95, terminal_var: 100, terminal_expected_shortfall: 200, mean_ending_value: 1000 },
+        percentiles: [{ ...band, trading_day: 0 }, { ...band, trading_day: 252 }] };
+    context.render(simulation, simulation, 42, payload);
+    assert.equal(find("results").hidden, false);
+    assert.equal(find("overview-results").hidden, false);
+    assert.equal(find("correlation-b-panel").hidden, false);
+    assert.match(find("simulation-input-summary").textContent, /B: VTI/);
+    context.renderHistoricalOverview(analysis, null, payload, "Historical analysis");
+    assert.equal(find("correlation-b-panel").hidden, true);
+    assert.equal(find("comparison-results").hidden, false);
+});
