@@ -14,6 +14,18 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('id="simulation-form"', response.text)
         self.assertIn('id="compare-enabled"', response.text)
 
+    def test_workspace_navigation(self):
+        page = self.client.get("/").text
+        script = self.client.get("/static/workspace.js")
+        for view in ("overview", "simulation", "backtesting", "optimization", "stress"):
+            self.assertIn(f'data-workspace-tab="{view}"', page)
+            self.assertIn(f'data-result-view="{view}"', page)
+        self.assertIn('id="run-overview"', page)
+        self.assertIn('id="overview-results"', page)
+        self.assertIn('src="/static/workspace.js"', page)
+        self.assertEqual(script.status_code, 200)
+        self.assertIn("/api/portfolio", script.text)
+
     def test_stylesheet_loads(self):
         response = self.client.get("/static/styles.css")
         self.assertEqual(response.status_code, 200)

@@ -158,10 +158,14 @@ function getAllocation(id) {
 
 function getPayload() {
     const allocation = getAllocation("allocation");
-    if ($("start").value >= $("end").value) {
+    if (!$("start").value || !$("end").value || $("start").value >= $("end").value) {
         throw new Error(
             "End date must be after start date."
         );
+    }
+
+    if ($("initial").value === "" || !$("initial").checkValidity()) {
+        throw new Error("Enter a valid initial investment.");
     }
 
     return {
@@ -368,21 +372,25 @@ function drawChart(bands, otherBands = null) {
 
 // Render the API response.
 
-function render(data, comparison = null, seed = null) {
+function render(data, comparison = null, seed = null, payload) {
     const {
         analysis,
         simulation_risk: risk,
         percentiles
     } = data;
 
-    const history = analysis.historical_risk;
-    const portfolio = analysis.portfolio_metrics;
     const last = percentiles.at(-1);
 
     $("summary").textContent =
         `${data.num_simulations.toLocaleString()} SIMULATIONS | ` +
         `${data.trading_days / 252} YEARS | ` +
         `${analysis.observations} HISTORICAL OBSERVATIONS`;
+
+    const allocationLabel = weights => Object.entries(weights)
+        .map(([ticker, weight]) => `${ticker}: ${percent(weight)}`).join(" | ");
+    $("simulation-input-summary").textContent =
+        `${payload.start} to ${payload.end} (exclusive) | A: ${allocationLabel(analysis.weights)}` +
+        (comparison ? ` | B: ${allocationLabel(comparison.analysis.weights)}` : "");
 
     metrics("metrics", [
         [
@@ -403,6 +411,43 @@ function render(data, comparison = null, seed = null) {
         ]
     ], true);
 
+    metrics("risk", [
+        ["Confidence", percent(risk.confidence)],
+        ["Value at Risk (signed loss)", money(risk.terminal_var)],
+        ["Expected shortfall (signed loss)", money(risk.terminal_expected_shortfall)],
+        ["Mean ending value", money(risk.mean_ending_value)]
+    ]);
+
+    $("results").hidden = false;
+
+    currentBands = percentiles;
+    comparisonBands = comparison ? comparison.percentiles : null;
+
+    $("chart-day").max = String(currentBands.length - 1);
+    $("chart-day").value = $("chart-day").max;
+    $("comparison-results").hidden = !comparison;
+    $("comparison-legend").hidden = !comparison;
+    $("median-label").textContent = comparison ? "Portfolio A median" : "Median";
+    $("chart").setAttribute("aria-label", comparison
+        ? "Portfolio A percentile bands and both portfolio median trajectories"
+        : "Projected portfolio percentile bands");
+
+    if (comparison) renderComparison(data, comparison, seed);
+
+    renderHistoricalOverview(analysis, comparison?.analysis, payload, "Simulation");
+    drawChart(currentBands, comparisonBands);
+}
+
+
+// Historical results can be loaded without running a simulation.
+function renderHistoricalOverview(analysis, comparison, payload, source) {
+    const history = analysis.historical_risk;
+    const portfolio = analysis.portfolio_metrics;
+
+    $("overview-summary").textContent = `${source} | ${payload.start} to ${payload.end} (exclusive) | ` +
+        `${analysis.tickers.length} assets | ${analysis.observations} daily returns. ` +
+        "Results reflect the last completed analysis." + (comparison ? " Metrics and breakdown show Portfolio A; both correlation matrices are shown." : "");
+
     metrics("historical", [
         [
             "Annualized return (arithmetic)",
@@ -422,26 +467,7 @@ function render(data, comparison = null, seed = null) {
             "Maximum drawdown",
             percent(history.max_drawdown)
         ]
-    ]);
-
-    metrics("risk", [
-        [
-            "Confidence",
-            percent(risk.confidence)
-        ],
-        [
-            "Value at Risk (signed loss)",
-            money(risk.terminal_var)
-        ],
-        [
-            "Expected shortfall (signed loss)",
-            money(risk.terminal_expected_shortfall)
-        ],
-        [
-            "Mean ending value",
-            money(risk.mean_ending_value)
-        ]
-    ]);
+    ], true);
 
     // Asset breakdown table.
 
@@ -472,20 +498,6 @@ function render(data, comparison = null, seed = null) {
         })
     );
 
-    $("empty").hidden = true;
-    $("results").hidden = false;
-
-    currentBands = percentiles;
-    comparisonBands = comparison ? comparison.percentiles : null;
-
-    $("chart-day").max = String(currentBands.length - 1);
-    $("chart-day").value = $("chart-day").max;
-    $("comparison-results").hidden = !comparison;
-    $("comparison-legend").hidden = !comparison;
-    $("median-label").textContent = comparison ? "Portfolio A median" : "Median";
-    $("chart").setAttribute("aria-label", comparison
-        ? "Portfolio A percentile bands and both portfolio median trajectories"
-        : "Projected portfolio percentile bands");
     renderCorrelation(
         analysis,
         "correlation-a",
@@ -495,10 +507,8 @@ function render(data, comparison = null, seed = null) {
     $("correlation-b-panel").hidden = !comparison;
 
     if (comparison) {
-        renderComparison(data, comparison, seed);
-
         renderCorrelation(
-            comparison.analysis,
+            comparison,
             "correlation-b",
             "Portfolio B"
         );
@@ -507,7 +517,7 @@ function render(data, comparison = null, seed = null) {
         $("correlation-b").replaceChildren();
     }
 
-    drawChart(currentBands, comparisonBands);
+    $("overview-results").hidden = false;
 }
 
 // Determine the color of a correlation cell.
@@ -633,7 +643,7 @@ function renderComparison(a, b, seed) {
     ];
     $("comparison-summary").textContent =
         `Shared random seed: ${seed}. ` +
-        "Main summary, historical risk and asset breakdown show Portfolio A.";
+        "Simulation summary and downside risk show Portfolio A. Historical analysis is available in Overview.";
     $("comparison-table").replaceChildren(...rows.map(([label, first, second]) => {
         const row = element("tr");
         const heading = element("th", label);
@@ -710,9 +720,9 @@ $("simulation-form").addEventListener(
             }
 
             if (comparing) {
-                render(data.portfolio_a, data.portfolio_b, data.seed);
+                render(data.portfolio_a, data.portfolio_b, data.seed, payload);
             } else {
-                render(data);
+                render(data, null, null, payload);
             }
 
             lastExport = {

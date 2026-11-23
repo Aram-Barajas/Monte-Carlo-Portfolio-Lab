@@ -949,3 +949,77 @@ button {
 #frontier-results .median {
     background: var(--chart-median);
 }
+
+/* Research workspace navigation */
+main#workspace {
+    max-width: 1600px;
+    padding: 1.75rem clamp(1rem, 3vw, 3rem);
+}
+
+.workspace-nav {
+    position: sticky;
+    top: .5rem;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin: 0 0 1.25rem;
+    padding: .4rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.workspace-nav a {
+    flex: 1 1 auto;
+    text-align: center;
+    text-decoration: none;
+    color: var(--ink);
+    font-weight: 600;
+    font-size: .86rem;
+    padding: .75rem .9rem;
+    border-radius: 4px;
+}
+
+.workspace-nav a:hover { background: var(--field); }
+.workspace-nav a[aria-current="page"] { background: var(--button); color: #fff; }
+.shared-capital { margin-top: 1rem; }
+.tool-controls { margin-top: 1rem; border-top: 1px solid var(--border); }
+.tool-controls h3 { font-size: .9rem; margin: 1rem 0 .4rem; }
+#overview-status { margin-bottom: 0; overflow-wrap: anywhere; }
+#overview-status.error { color: var(--error); }
+.export-panel { padding: .75rem 1rem; }
+.export-panel summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--green); }
+.export-panel[open] summary { margin-bottom: .75rem; }
+[data-result-view] { min-width: 0; }
+[data-result-view] > section { scroll-margin-top: 5rem; }
+#simulation-input-summary { overflow-wrap: anywhere; }
+#frontier-chart .frontier-line { fill: none; stroke: var(--chart-median); stroke-width: 2.5px; }
+#frontier-chart .frontier-point { fill: var(--chart-median); }
+#frontier-chart .frontier-current { fill: var(--comparison-line); }
+#frontier-chart .frontier-sharpe { fill: var(--ink); }
+#frontier-chart .frontier-selected { fill: none; stroke: var(--chart-median); }
+
+@media (max-width: 520px) {
+    .workspace-nav { flex-wrap: nowrap; overflow-x: auto; }
+    .workspace-nav a { flex: 0 0 auto; white-space: nowrap; padding: .65rem .65rem; }
+    main#workspace { padding: 1.25rem 1rem; }
+}
+
+/* Responsive overflow prevention */
+
+.layout > .results {
+    min-width: 0;
+}
+
+.table-wrap {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+@media (max-width: 850px) {
+    .layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
