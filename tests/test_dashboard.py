@@ -1,7 +1,7 @@
 import unittest
 from fastapi.testclient import TestClient
 from backend.api import app
-
+from html.parser import HTMLParser
 
 class DashboardTests(unittest.TestCase):
     def setUp(self):
@@ -185,3 +185,84 @@ class DashboardTests(unittest.TestCase):
             "/api/stress-test",
             script.text
         )
+
+    def test_benchmark_dashboard_loads(self):
+
+        page = self.client.get("/").text
+
+        script = self.client.get("/static/benchmark.js")
+
+        for id in (
+            "benchmark-ticker",
+            "run-benchmark",
+            "benchmark-results",
+            "benchmark-chart",
+            "benchmark-table",
+            "benchmark-excess"
+        ):
+            self.assertIn(
+                f'id="{id}"',
+                page
+            )
+
+        self.assertIn(
+            'src="/static/benchmark.js"',
+            page
+        )
+
+        self.assertEqual(
+            script.status_code,
+            200
+        )
+
+        self.assertIn(
+            "/api/benchmark",
+            script.text
+        )
+
+    def test_independent_result_sections(self):
+
+        class Sections(HTMLParser):
+
+            stack = []
+            parents = {}
+
+            def handle_starttag(self, tag, attrs):
+
+                if tag == "section":
+
+                    attrs = dict(attrs)
+
+                    name = attrs.get(
+                        "id",
+                        attrs.get("class")
+                    )
+
+                    self.parents[name] = (
+                        self.stack[-1]
+                        if self.stack
+                        else None
+                    )
+
+                    self.stack.append(name)
+
+            def handle_endtag(self, tag):
+
+                if tag == "section":
+                    self.stack.pop()
+
+        parser = Sections()
+
+        parser.feed(
+            self.client.get("/").text
+        )
+
+        for id in (
+            "backtest-results",
+            "stress-results",
+            "benchmark-results"
+        ):
+            self.assertEqual(
+                parser.parents[id],
+                "results"
+            )
