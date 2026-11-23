@@ -1,0 +1,7 @@
+-r requirements.txt
+# Offline regression, API client, coverage, lint and dependency audit.
+pytest>=8,<10
+httpx>=0.27,<1
+pytest-cov>=6,<8
+ruff>=0.11,<1
+pip-audit>=2.8,<3
