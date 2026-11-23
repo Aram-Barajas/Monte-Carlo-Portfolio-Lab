@@ -193,20 +193,60 @@ class MarketDataTests(unittest.TestCase):
 
         self.assertEqual(len(returns), 3)
 
-    def test_missing_prices_are_not_filled_or_bridged(self):
+    def test_internal_gap_is_rejected_instead_of_losing_returns(self):
         self.prices.loc[self.dates[1], "NVDA"] = np.nan
 
-        returns = calculate_daily_returns(self.prices)
+        with self.assertRaisesRegex(ValueError, "missing prices.*NVDA.*2025-01-03"):
+            calculate_daily_returns(self.prices)
 
-        self.assertEqual(
-            returns.index.tolist(),
-            [self.dates[3]]
-        )
+    def test_mixed_calendars_cannot_silently_discard_growth(self):
+        dates = pd.date_range("2025-01-03", periods=5, freq="D")
+        prices = pd.DataFrame({
+            "VTI": [100, np.nan, np.nan, 110, 121],
+            "BTC-USD": [100, 105, 110, 115, 120]
+        }, index=dates)
 
-        self.assertAlmostEqual(
-            returns.iloc[0]["NVDA"],
-            0.10
+        # The old code silently retained only the last return.
+        with self.assertRaisesRegex(ValueError, "missing prices.*VTI"):
+            calculate_daily_returns(prices)
+
+    def test_fully_missing_interior_row_is_rejected(self):
+        self.prices.loc[self.dates[1], :] = np.nan
+        with self.assertRaisesRegex(ValueError, "missing prices.*NVDA, VTI"):
+            calculate_daily_returns(self.prices)
+
+    def test_trim_edges_and_preserve_all_shared_growth(self):
+        dates = pd.date_range("2025-01-01", periods=6, freq="B")
+        prices = pd.DataFrame({
+            "NVDA": [100, 110, 121, 133.1, 146.41, np.nan],
+            "VTI": [np.nan, 200, 210, 220, 240, 250]
+        }, index=dates)
+        original = prices.copy(deep=True)
+        returns = calculate_daily_returns(prices)
+
+        self.assertEqual(returns.index.tolist(), dates[2:5].tolist())
+        np.testing.assert_allclose(
+            (1 + returns).prod(), [146.41 / 110, 240 / 200],
+            rtol=1e-12
         )
+        pd.testing.assert_frame_equal(prices, original)
+
+    def test_no_common_history_or_single_common_date(self):
+        for values in ([np.nan, np.nan, 200, 210], [np.nan, 200, 210, 220]):
+            with self.subTest(values=values):
+                prices = self.prices.copy()
+                prices["NVDA"] = [100, 110, np.nan, np.nan]
+                prices["VTI"] = values
+                with self.assertRaisesRegex(ValueError, "Insufficient overlapping"):
+                    calculate_daily_returns(prices)
+
+    def test_weekend_is_not_a_gap_when_no_price_rows_exist(self):
+        prices = pd.DataFrame({"VTI": [100, 102]}, index=pd.to_datetime([
+            "2025-01-03", "2025-01-06"
+        ]))
+        returns = calculate_daily_returns(prices)
+        self.assertEqual(len(returns), 1)
+        self.assertAlmostEqual(returns.iloc[0, 0], .02)
 
     def test_invalid_prices(self):
         for value in (0, -1, np.inf):

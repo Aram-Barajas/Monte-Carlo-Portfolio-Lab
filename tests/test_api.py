@@ -55,6 +55,60 @@ class APITests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
 
+    def test_all_historical_analytics_reject_price_gaps(self):
+        prices = self.prices.copy().astype(float)
+        prices.loc[prices.index[1], "NVDA"] = float("nan")
+        requests = {
+            "/api/portfolio": self.portfolio,
+            "/api/simulate": self.simulation,
+            "/api/compare": {**self.simulation, "comparison_weights": {"VTI": 1.0}},
+            "/api/optimize": self.portfolio,
+            "/api/frontier": self.portfolio,
+            "/api/backtest": self.portfolio,
+            "/api/benchmark": {**self.portfolio, "benchmark": "VTI"},
+        }
+
+        # Mock downloads, not return calculations: exercise the real alignment.
+        with patch("backend.market_data.fetch_historical_prices", return_value=prices), \
+             patch("backend.api.fetch_historical_prices", return_value=prices):
+            for endpoint, payload in requests.items():
+                with self.subTest(endpoint=endpoint):
+                    response = self.client.post(endpoint, json=payload)
+                    self.assertEqual(response.status_code, 422)
+                    self.assertIn("missing prices", response.json()["detail"])
+                    self.assertIn("NVDA", response.json()["detail"])
+
+    def test_historical_analytics_use_complete_overlap(self):
+        prices = self.prices.astype(float)
+        prices.iloc[0, 0] = float("nan")
+
+        with patch("backend.market_data.fetch_historical_prices", return_value=prices):
+            response = self.client.post("/api/portfolio", json=self.portfolio)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["observations"], 2)
+        expected = (((101 / 102 - 1) + (104 / 101 - 1)) / 2) * 252
+        self.assertAlmostEqual(response.json()["asset_metrics"][0]["annualized_return"], expected)
+
+    def test_comparison_rejects_gaps_in_assets_only_in_second_portfolio(self):
+        prices = self.prices.assign(SPY=[100., float("nan"), 103., 105.])
+        payload = {**self.simulation, "comparison_weights": {"SPY": 1.0}}
+        with patch("backend.market_data.fetch_historical_prices", return_value=prices) as fetch:
+            response = self.client.post("/api/compare", json=payload)
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("missing prices", response.json()["detail"])
+        self.assertIn("SPY", response.json()["detail"])
+        self.assertEqual(fetch.call_args.args[0], ["NVDA", "VTI", "SPY"])
+
+    def test_raw_market_data_retains_missing_price(self):
+        prices = self.prices.astype(float)
+        prices.iloc[1, 0] = float("nan")
+        with patch("backend.api.fetch_historical_prices", return_value=prices):
+            response = self.client.post("/api/market-data", json=self.market)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()["prices"]), 4)
+        self.assertIsNone(response.json()["prices"][1]["NVDA"])
+
     @patch("backend.api.fetch_historical_prices")
     def test_market_data(self, fetch):
         fetch.return_value = self.prices

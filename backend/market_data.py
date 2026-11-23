@@ -227,17 +227,38 @@ def _download_historical_prices(
     )
 
 
-def calculate_daily_returns(prices):
-    """Calculate fractional returns without filling gaps."""
-
+def align_price_history(prices, *, minimum_dates=2):
+    """Keep a complete shared history; never silently discard interior gaps."""
     prices = _validate_prices(prices)
 
-    returns = (
-        prices / prices.shift(1) - 1
-    ).dropna(how="any")
+    start = max(prices[column].first_valid_index() for column in prices)
+    end = min(prices[column].last_valid_index() for column in prices)
+    prices = prices.loc[start:end]
 
-    if returns.empty:
-        raise ValueError("Insufficient overlapping price history.")
+    if len(prices) < minimum_dates:
+        raise ValueError(
+            "Insufficient overlapping price history. "
+            f"At least {minimum_dates} overlapping price dates are required."
+        )
+
+    missing = prices.isna()
+    if missing.any().any():
+        symbols = ", ".join(map(str, prices.columns[missing.any()]))
+        first_gap = missing.index[missing.any(axis=1)][0]
+        raise ValueError(
+            "Historical data contains missing prices within the shared date "
+            f"range for {symbols} (first gap: {first_gap:%Y-%m-%d}). "
+            "Choose assets with matching trading calendars or a complete date range."
+        )
+
+    return prices
+
+
+def calculate_daily_returns(prices):
+    """Calculate returns between consecutive complete shared price dates."""
+    prices = align_price_history(prices)
+
+    returns = (prices / prices.shift(1) - 1).iloc[1:]
 
     if not np.isfinite(returns.to_numpy()).all():
         raise ValueError("Returns contain non-finite values.")

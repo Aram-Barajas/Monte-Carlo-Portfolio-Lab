@@ -190,7 +190,7 @@ class BacktestTests(unittest.TestCase):
 
         with self.assertRaisesRegex(
             ValueError,
-            "three overlapping"
+            "3 overlapping"
         ):
             backtest_portfolio(
                 self.prices.iloc[:2],
