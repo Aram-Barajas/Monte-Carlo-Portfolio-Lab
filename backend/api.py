@@ -53,6 +53,7 @@ FRONTEND_ASSETS = frozenset({
     "styles.css", "app.js", "export.js", "chart-tools.js", "backtest.js",
     "benchmark.js", "stress-test.js", "frontier.js", "robust-optimization.js",
     "advanced-risk.js", "planning.js", "model-validation.js", "discovery.js", "workspace.js",
+    "personal-portfolio.js",
 })
 
 
@@ -108,7 +109,7 @@ class MarketRequest(BaseModel):
 class PortfolioRequest(MarketRequest):
     weights: dict[str, float]
     confidence: float = Field(default=0.95, gt=0, lt=1)
-    annual_risk_free_rate: float = 0.0
+    annual_risk_free_rate: float = Field(default=0.0, ge=-.05, le=.5)
 
     @model_validator(mode="after")
     def validate_allocation(self):
