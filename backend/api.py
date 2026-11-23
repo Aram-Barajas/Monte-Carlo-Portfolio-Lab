@@ -37,6 +37,7 @@ from .model_validation import validate_models, MAX_VALIDATION_DRAWS
 from .discovery import screen_candidates, MAX_CANDIDATES
 from .http_security import HttpSecurityMiddleware, HttpLimits
 from .portfolio_policy import inflation_factors
+from .data_quality import describe_historical_data
 from .advanced_risk import (
     CRISIS_WINDOWS, calculate_risk_contributions, calculate_rolling_risk,
     replay_crisis,
@@ -445,6 +446,8 @@ def analyze_portfolio(returns, request):
         "weights": request.weights,
 
         "observations": len(returns),
+
+        "data_quality": describe_historical_data(returns),
 
         "asset_metrics": frame_records(
             calculate_asset_metrics(returns),
