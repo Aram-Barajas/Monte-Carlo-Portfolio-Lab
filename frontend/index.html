@@ -19,6 +19,7 @@
     <script src="/static/advanced-risk.js" defer></script>
     <script src="/static/planning.js" defer></script>
     <script src="/static/model-validation.js" defer></script>
+    <script src="/static/discovery.js" defer></script>
     <script src="/static/workspace.js" defer></script>
 
 </head>
@@ -58,6 +59,7 @@
             <a href="#risk" data-workspace-tab="risk">Risk analytics</a>
             <a href="#planning" data-workspace-tab="planning">Goal planning</a>
             <a href="#validation" data-workspace-tab="validation">Model validation</a>
+            <a href="#discovery" data-workspace-tab="discovery">Discovery</a>
         </nav>
 
         <div class="layout">
@@ -81,7 +83,7 @@ AMZN, 15</textarea>
                         are normalized automatically. BRK.B is accepted.
                     </small>
 
-                    <div class="fields shared-fields" data-controls="overview simulation backtesting optimization risk planning validation">
+                    <div class="fields shared-fields" data-controls="overview simulation backtesting optimization risk planning validation discovery">
                         <label>History start
                             <input id="start" type="date" value="2023-01-01" required>
                         </label>
@@ -477,6 +479,32 @@ AMZN, 15</textarea>
                     <button id="run-validation" type="button">Validate simulation models</button>
                     <p class="muted">Each model fits only on the earlier training window and predicts the next unseen period. Uses Portfolio A and daily fixed weights, without cash flows or costs.</p>
                     <p id="validation-status" class="muted" role="status" aria-live="polite">Ready to validate.</p>
+                </div>
+                <div class="tool-controls" data-controls="discovery" hidden>
+                    <h3>Candidate screening</h3>
+                    <label for="discovery-candidates">Stocks and ETFs to investigate</label>
+                    <textarea id="discovery-candidates" rows="5" aria-describedby="discovery-hint">VXUS
+BND
+GLD
+SCHD
+JPM
+WMT</textarea>
+                    <small id="discovery-hint">Example research universe only, not recommendations. Edit up to eight ticker symbols, separated by commas or new lines.</small>
+                    <label for="discovery-weight">Hypothetical candidate allocation (%)</label>
+                    <input id="discovery-weight" type="number" min="1" max="50" step="0.1" value="10">
+                    <label for="discovery-objective">Rank candidates by training-period</label>
+                    <select id="discovery-objective">
+                        <option value="volatility_reduction">Volatility reduction</option>
+                        <option value="sharpe_improvement">Sharpe ratio improvement</option>
+                        <option value="return_improvement">Annualized return improvement</option>
+                    </select>
+                    <label for="discovery-holdout">Reserved validation history (%)</label>
+                    <input id="discovery-holdout" type="number" min="10" max="50" step="1" value="25">
+                    <label for="discovery-rate">Annual risk-free rate (%)</label>
+                    <input id="discovery-rate" type="number" step="0.01" value="0">
+                    <button id="run-discovery" type="button">Screen candidate additions</button>
+                    <p class="muted">Test each asset separately, funded by proportionally reducing current holdings. Candidates must match the portfolio's historical dates. No actual trades are placed.</p>
+                    <p id="discovery-status" class="muted" role="status" aria-live="polite">Ready to screen.</p>
                 </div>
             </aside>
 
@@ -1166,6 +1194,45 @@ AMZN, 15</textarea>
                             </table></div>
                         </details>
                         <p class="muted">These are historical pseudo-out-of-sample forecasts, not live predictions. Training windows overlap, market regimes change, and present-day asset selection or tuning against results can introduce hindsight. Intervals are predictive distributions, not confidence intervals.</p>
+                    </section>
+                </div>
+                <div data-result-view="discovery" hidden>
+                    <section id="discovery-results" class="panel" hidden>
+                        <h2>Candidate research | Portfolio A</h2>
+                        <p id="discovery-summary" class="muted"></p>
+                        <p id="discovery-ranking-note" class="muted"></p>
+                        <div class="table-wrap"><table>
+                            <thead><tr><th scope="col">Rank</th><th scope="col">Ticker</th><th scope="col">Training correlation</th><th scope="col">Training vol. reduction (pp)</th><th scope="col">Training Sharpe change</th><th scope="col">Training return change (pp)</th><th scope="col">Holdout objective score</th></tr></thead>
+                            <tbody id="discovery-ranking"></tbody>
+                        </table></div>
+                        <p class="muted">Positive objective scores indicate a historical improvement under the selected criterion. Negative scores indicate deterioration. The highest rank does not establish that an asset is suitable or should be purchased.</p>
+                        <div id="discovery-inspector" hidden>
+                            <h3>Inspect hypothetical allocation</h3>
+                            <label for="discovery-selected">Candidate</label>
+                            <select id="discovery-selected"></select>
+                            <div class="table-wrap"><table>
+                                <thead><tr><th scope="col">Asset</th><th scope="col">Original</th><th scope="col">Hypothetical</th></tr></thead>
+                                <tbody id="discovery-weights"></tbody>
+                            </table></div>
+                            <h3>Training history</h3>
+                            <div class="table-wrap"><table>
+                                <thead><tr><th scope="col">Metric</th><th scope="col">Original</th><th scope="col">Hypothetical</th><th scope="col">Candidate alone</th></tr></thead>
+                                <tbody id="discovery-training"></tbody>
+                            </table></div>
+                            <h3>Reserved validation history</h3>
+                            <div class="table-wrap"><table>
+                                <thead><tr><th scope="col">Metric</th><th scope="col">Original</th><th scope="col">Hypothetical</th><th scope="col">Candidate alone</th></tr></thead>
+                                <tbody id="discovery-holdout-table"></tbody>
+                            </table></div>
+                        </div>
+                        <div id="discovery-exclusions" hidden>
+                            <h3>Not evaluated</h3>
+                            <div class="table-wrap"><table>
+                                <thead><tr><th scope="col">Ticker</th><th scope="col">Reason</th></tr></thead>
+                                <tbody id="discovery-excluded"></tbody>
+                            </table></div>
+                        </div>
+                        <p class="muted">This is a limited historical screening exercise, not a stock recommendation engine. It does not analyze valuation, fundamentals, transaction costs, taxes, ETF holdings overlap, or future returns. Selecting candidates or settings after seeing validation results can introduce hindsight.</p>
                     </section>
                 </div>
             </section>

@@ -1014,6 +1014,10 @@ main#workspace {
 #validation-chart .validation-median { stroke: var(--chart-median); fill: none; }
 #validation-chart .validation-actual { stroke: var(--comparison-line); fill: none; }
 #validation-chart .validation-observed { fill: var(--comparison-line); }
+#discovery-results { margin-top: 1rem; min-width: 0; }
+#discovery-results h3 { margin-top: 1.4rem; font-size: .95rem; }
+#discovery-summary, #discovery-status, #discovery-excluded td { overflow-wrap: anywhere; }
+#discovery-status.error { color: var(--error); }
 .export-panel { padding: .75rem 1rem; }
 .export-panel summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--green); }
 .export-panel[open] summary { margin-bottom: .75rem; }

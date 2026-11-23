@@ -34,6 +34,7 @@ from .frontier import calculate_efficient_frontier
 from .robust_optimization import optimize_robust_portfolio
 from .planning import plan_portfolio
 from .model_validation import validate_models, MAX_VALIDATION_DRAWS
+from .discovery import screen_candidates, MAX_CANDIDATES
 from .portfolio_policy import inflation_factors
 from .advanced_risk import (
     CRISIS_WINDOWS, calculate_risk_contributions, calculate_rolling_risk,
@@ -106,6 +107,22 @@ class PortfolioRequest(MarketRequest):
          self.tickers
 ).to_dict()
 
+        return self
+
+
+class DiscoveryRequest(PortfolioRequest):
+    candidates: list[str] = Field(min_length=1, max_length=MAX_CANDIDATES)
+    candidate_weight: float = Field(default=.1, ge=.01, le=.5)
+    objective: Literal["volatility_reduction", "sharpe_improvement", "return_improvement"] = "volatility_reduction"
+    holdout_fraction: float = Field(default=.25, ge=.1, le=.5)
+
+    @model_validator(mode="after")
+    def validate_candidates(self):
+        self.candidates = normalize_tickers(self.candidates)
+        if len(self.tickers) > 19:
+            raise ValueError("Screening supports up to 19 existing holdings.")
+        if any(len(ticker) > 20 for ticker in self.candidates):
+            raise ValueError("Ticker symbols must not exceed 20 characters.")
         return self
 
 
@@ -681,6 +698,21 @@ def benchmark(request: BenchmarkRequest):
             status_code=422,
             detail=str(error)
         ) from error
+
+
+@app.post("/api/discover")
+def discover(request: DiscoveryRequest):
+    prices = load_market_data(request, prices=True)
+    try:
+        result = screen_candidates(
+            prices, request.weights, request.candidates,
+            lambda ticker: fetch_historical_prices([ticker], request.start, request.end),
+            candidate_weight=request.candidate_weight, objective=request.objective,
+            holdout_fraction=request.holdout_fraction, annual_risk_free_rate=request.annual_risk_free_rate,
+        )
+        return {"start": request.start, "end": request.end, **result}
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @app.post("/api/risk-analysis")
