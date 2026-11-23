@@ -32,7 +32,7 @@ class DashboardTests(unittest.TestCase):
     def test_workspace_navigation(self):
         page = self.client.get("/").text
         script = self.client.get("/static/workspace.js")
-        for view in ("overview", "simulation", "backtesting", "optimization", "stress", "risk", "planning"):
+        for view in ("overview", "simulation", "backtesting", "optimization", "stress", "risk", "planning", "validation"):
             self.assertIn(f'data-workspace-tab="{view}"', page)
             self.assertIn(f'data-result-view="{view}"', page)
         self.assertIn('id="run-overview"', page)
@@ -59,6 +59,15 @@ class DashboardTests(unittest.TestCase):
         script = self.client.get("/static/planning.js")
         self.assertEqual(script.status_code, 200)
         self.assertIn("/api/plan", script.text)
+
+    def test_model_validation_dashboard(self):
+        page = self.client.get("/").text
+        for identifier in ("run-validation", "validation-results", "validation-chart",
+                           "validation-scores", "validation-pit", "validation-fold-table"):
+            self.assertIn(f'id="{identifier}"', page)
+        script = self.client.get("/static/model-validation.js")
+        self.assertEqual(script.status_code, 200)
+        self.assertIn("/api/validate-models", script.text)
 
     def test_stylesheet_loads(self):
         response = self.client.get("/static/styles.css")

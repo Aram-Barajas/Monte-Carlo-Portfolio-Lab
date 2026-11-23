@@ -196,7 +196,7 @@ random seed, when available.
 ## Research Workspace
 
 Use the navigation to switch between Overview, Simulation, Backtesting,
-Optimization, Stress testing, Risk analytics and Goal planning. Each view displays its own controls and
+Optimization, Stress testing, Risk analytics, Goal planning and Model validation. Each view displays its own controls and
 results. Portfolio A and applicable dates/capital are shared; switching
 views preserves entered settings and completed results until page reload.
 Browser back and forward navigation works through URL fragments.
@@ -740,6 +740,48 @@ future results. Taxes, fees, withdrawals, changing allocations and
 retirement income are not modeled. This is an educational accumulation
 planning tool, not a personalized savings recommendation.
 
+## Statistical Model Validation
+
+The Model validation workspace compares Gaussian log returns, Gaussian
+returns with uncertain mean, and historical circular block bootstrap
+using chronological walk-forward forecasts. Each fold fits on a fixed
+number of earlier daily return observations and predicts the next
+unseen trading-day window. Forecast periods do not overlap. The latest
+complete folds are used, up to the requested maximum; at least three
+folds must be available. All models use the same training and test dates,
+portfolio allocation, drift setting and number of paths. Fold seeds
+are derived reproducibly from a returned master seed.
+
+For each fold the realized terminal return is the compounded daily
+fixed-weight portfolio return. The models generate terminal-return
+distributions using the existing simulation engine, with no cash flows
+or fees. Measures include:
+
+- **50% and 90% coverage:** fraction of realizations inside the
+  central predictive intervals (inclusive endpoints).
+- **Tail misses:** counts falling below the 5th or above the 95th percentile.
+- **Mean absolute median error and signed bias:** forecast median versus
+  actual return; positive bias means the median overestimated returns.
+- **Mean 90% interval width:** how wide the predictive distributions are.
+- **CRPS:** continuous ranked probability score, calculated as the
+  mean absolute distance to the realized return minus half the mean
+  pairwise distance between simulated returns. Lower is better.
+- **Loss Brier score:** squared error between the predicted probability
+  of a negative return and whether the actual return was negative.
+  Lower is better.
+- **PIT histogram:** empirical fraction below the observed return plus
+  half the fraction tied with it, counted in ten equal-width bins.
+
+The API caps requested work at 20 million model-asset-day-path draws.
+Folds are limited to 3-24, training windows to 63-1,260 observations,
+forecast horizons to 5-252 observations, and paths to 100-1,000.
+Longer histories support more complete folds. Coverage and PIT are
+descriptive rather than formal calibration tests: overlapping training
+windows, dependence between outcomes, finite Monte Carlo samples,
+changing regimes, and hindsight in asset selection can affect results.
+Tuning model settings against these folds can overfit them. Good
+historical scores do not guarantee future prediction quality.
+
 ## REST API
 
 Start the FastAPI server from the repository root:
@@ -757,6 +799,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/portfolio` | Portfolio metrics, covariance, correlation and risk |
 | POST | `/api/simulate` | Monte Carlo percentile bands and terminal risk |
 | POST | `/api/plan` | Long-horizon inflation-adjusted goal probabilities and contribution sensitivity |
+| POST | `/api/validate-models` | Walk-forward out-of-sample scoring of simulation models |
 | POST | `/api/compare` | Compare two allocations under shared assumptions |
 | POST | `/api/backtest` | Replay a portfolio over historical market prices |
 | POST | `/api/stress-test` | Evaluate hypothetical asset price shocks |
