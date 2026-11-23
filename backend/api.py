@@ -33,6 +33,7 @@ from .optimization import optimize_portfolio
 from .frontier import calculate_efficient_frontier
 from .robust_optimization import optimize_robust_portfolio
 from .planning import plan_portfolio
+from .model_validation import validate_models, MAX_VALIDATION_DRAWS
 from .portfolio_policy import inflation_factors
 from .advanced_risk import (
     CRISIS_WINDOWS, calculate_risk_contributions, calculate_rolling_risk,
@@ -299,6 +300,24 @@ class SimulationRequest(TradingPolicyRequest):
         return self
 
 
+class ModelValidationRequest(PortfolioRequest):
+    training_days: int = Field(default=252, ge=63, le=1260)
+    forecast_days: int = Field(default=21, ge=5, le=252)
+    max_folds: int = Field(default=12, ge=3, le=24)
+    num_simulations: int = Field(default=500, ge=100, le=1000)
+    drift_weight: float = Field(default=1., ge=0, le=1)
+    block_length: int = Field(default=21, ge=1, le=252)
+    seed: int | None = Field(default=None, ge=0, le=2**32 - 1)
+
+    @model_validator(mode="after")
+    def validate_work(self):
+        if self.block_length > self.training_days:
+            raise ValueError("Block length cannot exceed the training window.")
+        if self.max_folds * self.num_simulations * self.forecast_days * len(self.tickers) * 3 > MAX_VALIDATION_DRAWS:
+            raise ValueError("Validation is too large. Reduce folds, forecast days, paths, or assets.")
+        return self
+
+
 class PlanningRequest(PortfolioRequest):
     years: int = Field(default=20, ge=1, le=40)
     num_simulations: int = Field(default=500, ge=1, le=2000)
@@ -512,6 +531,18 @@ def simulate(request: SimulationRequest):
         if request.seed is None:
             request = request.model_copy(update={"seed": randbits(32)})
         return simulation_result(returns, request)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.post("/api/validate-models")
+def model_validation(request: ModelValidationRequest):
+    returns = load_market_data(request)
+    try:
+        result = validate_models(returns, request.weights, **request.model_dump(exclude={
+            "tickers", "weights", "start", "end", "confidence", "annual_risk_free_rate",
+        }))
+        return {"start": request.start, "end": request.end, **result}
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 

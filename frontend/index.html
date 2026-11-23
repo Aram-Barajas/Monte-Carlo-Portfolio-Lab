@@ -18,6 +18,7 @@
     <script src="/static/robust-optimization.js" defer></script>
     <script src="/static/advanced-risk.js" defer></script>
     <script src="/static/planning.js" defer></script>
+    <script src="/static/model-validation.js" defer></script>
     <script src="/static/workspace.js" defer></script>
 
 </head>
@@ -56,6 +57,7 @@
             <a href="#stress" data-workspace-tab="stress">Stress testing</a>
             <a href="#risk" data-workspace-tab="risk">Risk analytics</a>
             <a href="#planning" data-workspace-tab="planning">Goal planning</a>
+            <a href="#validation" data-workspace-tab="validation">Model validation</a>
         </nav>
 
         <div class="layout">
@@ -79,7 +81,7 @@ AMZN, 15</textarea>
                         are normalized automatically. BRK.B is accepted.
                     </small>
 
-                    <div class="fields shared-fields" data-controls="overview simulation backtesting optimization risk planning">
+                    <div class="fields shared-fields" data-controls="overview simulation backtesting optimization risk planning validation">
                         <label>History start
                             <input id="start" type="date" value="2023-01-01" required>
                         </label>
@@ -449,6 +451,32 @@ AMZN, 15</textarea>
                     <button id="run-plan" type="button">Evaluate financial goal</button>
                     <p class="muted">Assumes daily fixed target weights, contributions at month end, no withdrawals or trading costs. A year has 252 trading days.</p>
                     <p id="plan-status" class="muted" role="status" aria-live="polite">Ready to plan.</p>
+                </div>
+                <div class="tool-controls" data-controls="validation" hidden>
+                    <h3>Walk-forward model validation</h3>
+                    <label for="validation-training">Training observations</label>
+                    <input id="validation-training" type="number" min="63" max="1260" step="1" value="252">
+                    <label for="validation-horizon">Forecast trading days</label>
+                    <select id="validation-horizon">
+                        <option value="21">21 (1 month)</option><option value="63">63 (3 months)</option>
+                        <option value="126">126 (6 months)</option><option value="252">252 (1 year)</option>
+                    </select>
+                    <label for="validation-folds">Maximum forecast folds</label>
+                    <input id="validation-folds" type="number" min="3" max="24" step="1" value="12">
+                    <details class="robust-settings">
+                        <summary>Simulation assumptions</summary>
+                        <label for="validation-paths">Paths per model and fold</label>
+                        <select id="validation-paths"><option>100</option><option>250</option><option selected>500</option><option>1000</option></select>
+                        <label for="validation-drift">Historical log-return drift retained (%)</label>
+                        <input id="validation-drift" type="number" min="0" max="100" step="1" value="100">
+                        <label for="validation-block">Bootstrap block length (days)</label>
+                        <input id="validation-block" type="number" min="1" max="252" step="1" value="21">
+                        <label for="validation-seed">Random seed (optional)</label>
+                        <input id="validation-seed" type="number" min="0" max="4294967295" step="1" value="42">
+                    </details>
+                    <button id="run-validation" type="button">Validate simulation models</button>
+                    <p class="muted">Each model fits only on the earlier training window and predicts the next unseen period. Uses Portfolio A and daily fixed weights, without cash flows or costs.</p>
+                    <p id="validation-status" class="muted" role="status" aria-live="polite">Ready to validate.</p>
                 </div>
             </aside>
 
@@ -1105,6 +1133,39 @@ AMZN, 15</textarea>
                             </div>
                         </details>
                         <p class="muted">All projected balances are in today's dollars. The goal probability applies at the selected horizon, not the probability of ever reaching it. The estimated required contribution is conditional on this model and sample; it is not a guarantee or a savings recommendation. No taxes, fees or withdrawals are modeled.</p>
+                    </section>
+                </div>
+                <div data-result-view="validation" hidden>
+                    <section id="validation-results" class="panel" hidden>
+                        <h2>Simulation model validation | Portfolio A</h2>
+                        <p id="validation-summary" class="muted"></p>
+                        <p id="validation-warning" class="muted"></p>
+                        <h3>Out-of-sample model comparison</h3>
+                        <div class="table-wrap"><table>
+                            <thead><tr><th scope="col">Metric</th><th scope="col">Gaussian</th><th scope="col">Uncertain mean</th><th scope="col">Block bootstrap</th></tr></thead>
+                            <tbody id="validation-scores"></tbody>
+                        </table></div>
+                        <p class="muted">Coverage should be assessed against the nominal 50% and 90% levels. CRPS measures the full forecast distribution; Brier score measures loss probabilities. Lower scores and errors are better, but one historical sample cannot prove future accuracy.</p>
+                        <label for="validation-model">Inspect model forecasts</label>
+                        <select id="validation-model">
+                            <option value="gaussian">Gaussian</option><option value="gaussian_uncertain">Gaussian with uncertain mean</option><option value="block_bootstrap">Historical block bootstrap</option>
+                        </select>
+                        <svg id="validation-chart" class="backtest-chart" role="img" aria-label="Forecast median and percentile range compared to actual return for each fold"></svg>
+                        <div class="legend"><span><i class="outer"></i>5th-95th percentile</span><span><i class="median"></i>Forecast median</span><span><i class="comparison-color"></i>Actual return</span></div>
+                        <h3>Probability integral transform (PIT)</h3>
+                        <p class="muted">Each bin counts where an actual return falls in the simulated distribution. A well-calibrated continuous model tends toward uniform bins over many forecasts; a small sample is inconclusive.</p>
+                        <div class="table-wrap"><table>
+                            <thead><tr><th scope="col">PIT interval</th><th scope="col">Count</th></tr></thead>
+                            <tbody id="validation-pit"></tbody>
+                        </table></div>
+                        <details class="robust-settings">
+                            <summary>Individual forecast windows</summary>
+                            <div class="table-wrap"><table>
+                                <thead><tr><th scope="col">Fold</th><th scope="col">Training dates</th><th scope="col">Forecast dates</th><th scope="col">Actual return</th><th scope="col">Forecast median</th><th scope="col">90% interval</th><th scope="col">Loss probability</th><th scope="col">CRPS</th></tr></thead>
+                                <tbody id="validation-fold-table"></tbody>
+                            </table></div>
+                        </details>
+                        <p class="muted">These are historical pseudo-out-of-sample forecasts, not live predictions. Training windows overlap, market regimes change, and present-day asset selection or tuning against results can introduce hindsight. Intervals are predictive distributions, not confidence intervals.</p>
                     </section>
                 </div>
             </section>

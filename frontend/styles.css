@@ -1006,6 +1006,14 @@ main#workspace {
 #plan-chart .plan-band { fill: var(--chart-outer); }
 #plan-chart .plan-median { stroke: var(--chart-median); }
 #plan-chart .plan-goal { stroke: var(--comparison-line); stroke-dasharray: 5 4; }
+#validation-results { margin-top: 1rem; min-width: 0; }
+#validation-results h3 { margin-top: 1.4rem; font-size: .95rem; }
+#validation-summary, #validation-status { overflow-wrap: anywhere; }
+#validation-status.error { color: var(--error); }
+#validation-chart .validation-band { fill: var(--chart-outer); }
+#validation-chart .validation-median { stroke: var(--chart-median); fill: none; }
+#validation-chart .validation-actual { stroke: var(--comparison-line); fill: none; }
+#validation-chart .validation-observed { fill: var(--comparison-line); }
 .export-panel { padding: .75rem 1rem; }
 .export-panel summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--green); }
 .export-panel[open] summary { margin-bottom: .75rem; }
