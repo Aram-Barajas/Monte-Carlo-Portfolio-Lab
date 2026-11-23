@@ -1,6 +1,7 @@
 """Bounded, thread-safe cache for historical market prices."""
 
 from collections import OrderedDict
+from concurrent.futures import Future
 from threading import Lock
 from time import monotonic
 
@@ -16,24 +17,50 @@ class MarketDataCache:
         self.ttl_seconds = ttl_seconds
         self.clock = clock
         self.entries = OrderedDict()
+        self.pending = {}
         self.lock = Lock()
 
     def get(self, key):
         """Return a copy of fresh prices, or None on a cache miss."""
 
         with self.lock:
-            if key not in self.entries:
-                return None
+            prices = self._fresh_locked(key)
+            return prices.copy(deep=True) if prices is not None else None
 
-            expires, prices = self.entries[key]
+    def _fresh_locked(self, key):
+        if key not in self.entries:
+            return None
+        expires, prices = self.entries[key]
+        if self.clock() >= expires:
+            del self.entries[key]
+            return None
+        self.entries.move_to_end(key)
+        return prices
 
-            if self.clock() >= expires:
-                del self.entries[key]
-                return None
-
-            self.entries.move_to_end(key)
-
-            return prices.copy(deep=True)
+    def get_or_load(self, key, loader):
+        """Coalesce concurrent misses for the same key; don't cache failures."""
+        with self.lock:
+            prices = self._fresh_locked(key)
+            if prices is not None:
+                return prices.copy(deep=True)
+            future = self.pending.get(key)
+            leader = future is None
+            if leader:
+                future = self.pending[key] = Future()
+        if not leader:
+            return future.result().copy(deep=True)
+        try:
+            prices = loader()
+            snapshot = prices.copy(deep=True)
+            self.put(key, prices)
+            future.set_result(snapshot)
+        except BaseException as error:
+            future.set_exception(error)
+            raise
+        finally:
+            with self.lock:
+                self.pending.pop(key, None)
+        return snapshot.copy(deep=True)
 
     def put(self, key, prices):
         """Store an isolated copy and evict least recently used entries."""

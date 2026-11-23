@@ -51,6 +51,9 @@ used entries are evicted when the cache is full. Failed downloads
 are not cached, and callers receive independent copies of prices.
 
 The cache is local to each server process and resets on restart.
+Concurrent misses for the same symbol set and dates share a single
+in-flight download. Successful loads are copied for each caller;
+failures are shared with waiters but are not cached.
 
 ## Installation
 
@@ -816,6 +819,45 @@ The tool does not check valuation, business fundamentals, ETF holdings
 overlap, transaction costs, taxes, current market conditions or suitability.
 History selection, repeated testing and today's ticker universe can
 introduce hindsight and overfitting.
+
+## Engineering and Security
+
+The API applies bounded request admission before parsing JSON. Defaults
+can be changed with positive integer environment variables (see
+`.env.example`; export variables in the shell or hosting environment).
+
+| Environment variable | Default | Purpose |
+| --- | --- | --- |
+| `PORTFOLIO_MAX_BODY_BYTES` | 65536 | Maximum API POST body, including streamed data |
+| `PORTFOLIO_RATE_LIMIT` | 120 | API POST requests per client per window |
+| `PORTFOLIO_RATE_WINDOW_SECONDS` | 60 | Fixed-window rate limit duration |
+| `PORTFOLIO_MAX_CONCURRENT` | 2 | Maximum simultaneous API POST requests per process |
+| `PORTFOLIO_MAX_RATE_CLIENTS` | 4096 | Bounded client accounting entries |
+| `PORTFOLIO_BODY_TIMEOUT_SECONDS` | 10 | Maximum time to receive an admitted request body |
+
+API POSTs require application/json. Oversized requests return 413,
+slow bodies 408, rate-limited requests 429, and busy requests 503.
+429 and 503 include Retry-After; the health endpoint stays outside the
+POST admission gate. Unexpected errors return a generic 500 response.
+Each response includes a generated X-Request-ID for troubleshooting;
+API logs record the route, status and elapsed time without recording
+request bodies or query strings in the application request log.
+
+The dashboard uses a same-origin Content Security Policy, frame
+protection, MIME-sniffing protection and restricted browser permissions.
+Only explicitly approved frontend assets are served beneath /static.
+API responses use Cache-Control: no-store. The interactive Swagger/ReDoc
+documentation is exempt from the strict CSP because it uses external
+assets and inline bootstrap scripts.
+
+Rate and concurrency limits and the market cache are per process, not
+distributed. The rate limiter keys on the ASGI client address rather
+than trusting arbitrary forwarded headers. Behind a reverse proxy,
+configure the server to trust only the known proxy addresses and use
+independent proxy-level rate limits, body/timeouts and HTTPS. The
+bounded client map evicts least-recently-used entries; limits are not
+an authentication system or comprehensive DDoS protection. No user
+account or investment trade execution is implemented.
 
 ## REST API
 

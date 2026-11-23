@@ -1,4 +1,6 @@
 import unittest
+from concurrent.futures import ThreadPoolExecutor, Future
+from threading import Event
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -49,6 +51,62 @@ class MarketCacheTests(unittest.TestCase):
         self.assertIsNone(
             self.cache.get("prices")
         )
+
+    def test_concurrent_cache_misses_share_one_download(self):
+        entered, waiting, release = Event(), Event(), Event()
+        load = Mock(side_effect=lambda: (entered.set(), release.wait(2), self.prices)[2])
+
+        class ObservedFuture(Future):
+            def result(self, timeout=None):
+                waiting.set()
+                return super().result(timeout)
+
+        with patch("backend.market_cache.Future", ObservedFuture):
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                first = executor.submit(self.cache.get_or_load, "prices", load)
+                try:
+                    self.assertTrue(entered.wait(2))
+                    second = executor.submit(self.cache.get_or_load, "prices", load)
+                    self.assertTrue(waiting.wait(2))
+                finally:
+                    release.set()
+                one, two = first.result(timeout=2), second.result(timeout=2)
+        load.assert_called_once()
+        one.iloc[0, 0] = 999
+        pd.testing.assert_frame_equal(two, self.prices)
+        pd.testing.assert_frame_equal(self.cache.get("prices"), self.prices)
+        self.assertEqual(self.cache.pending, {})
+
+    def test_coalesced_failure_is_shared_but_retriable(self):
+        entered, waiting, release = Event(), Event(), Event()
+
+        class ObservedFuture(Future):
+            def result(self, timeout=None):
+                waiting.set()
+                return super().result(timeout)
+
+        def fail():
+            entered.set()
+            release.wait(2)
+            raise RuntimeError("offline")
+
+        load = Mock(side_effect=fail)
+        with patch("backend.market_cache.Future", ObservedFuture):
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                first = executor.submit(self.cache.get_or_load, "prices", load)
+                try:
+                    self.assertTrue(entered.wait(2))
+                    second = executor.submit(self.cache.get_or_load, "prices", load)
+                    self.assertTrue(waiting.wait(2))
+                finally:
+                    release.set()
+                for future in (first, second):
+                    with self.assertRaisesRegex(RuntimeError, "offline"):
+                        future.result(timeout=2)
+        load.assert_called_once()
+        self.assertIsNone(self.cache.get("prices"))
+        self.assertEqual(self.cache.pending, {})
+        pd.testing.assert_frame_equal(self.cache.get_or_load("prices", lambda: self.prices), self.prices)
 
     def test_least_recently_used_eviction(self):
         self.cache.put("a", self.prices)

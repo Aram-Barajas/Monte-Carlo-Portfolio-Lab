@@ -137,16 +137,9 @@ def fetch_historical_prices(
         end
     )
 
-    prices = _price_cache.get(key)
-
-    if prices is None:
-        prices = _download_historical_prices(
-            ordered_symbols,
-            start,
-            end
-        )
-
-        _price_cache.put(key, prices)
+    prices = _price_cache.get_or_load(
+        key, lambda: _download_historical_prices(ordered_symbols, start, end)
+    )
 
     return prices.loc[:, symbols].copy(deep=True)
 
