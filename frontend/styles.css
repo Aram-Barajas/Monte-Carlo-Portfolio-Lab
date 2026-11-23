@@ -891,3 +891,61 @@ button {
 #benchmark-results .median {
     background: var(--chart-median);
 }
+
+/* Efficient frontier */
+
+.frontier-controls {
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
+    padding-top: 1rem;
+}
+
+#run-frontier {
+    background: transparent;
+    color: var(--green);
+    border: 1px solid var(--green);
+}
+
+    #run-frontier:hover {
+        background: var(--field);
+    }
+
+#frontier-status.error {
+    color: var(--error);
+}
+
+#frontier-results {
+    margin-top: 1.5rem;
+}
+
+#frontier-chart .frontier-line {
+    stroke: var(--chart-median);
+}
+
+.frontier-point {
+    fill: var(--chart-median);
+}
+
+.frontier-current {
+    fill: var(--comparison-line);
+    stroke: var(--white);
+}
+
+.frontier-sharpe {
+    fill: var(--ink);
+    stroke: var(--white);
+}
+
+.frontier-selected {
+    fill: none;
+    stroke: var(--chart-median);
+    stroke-width: 2;
+}
+
+.frontier-sharpe-key {
+    background: var(--ink);
+}
+
+#frontier-results .median {
+    background: var(--chart-median);
+}

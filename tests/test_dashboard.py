@@ -260,9 +260,46 @@ class DashboardTests(unittest.TestCase):
         for id in (
             "backtest-results",
             "stress-results",
-            "benchmark-results"
+            "benchmark-results",
+            "frontier-results"
         ):
             self.assertEqual(
                 parser.parents[id],
                 "results"
             )
+
+    def test_frontier_dashboard_loads(self):
+
+        page = self.client.get("/").text
+
+        script = self.client.get("/static/frontier.js")
+
+        for id in (
+            "frontier-cap",
+            "frontier-rate",
+            "run-frontier",
+            "frontier-results",
+            "frontier-chart",
+            "frontier-select",
+            "frontier-weights"
+        ):
+
+            self.assertIn(
+                f'id="{id}"',
+                page
+            )
+
+        self.assertIn(
+            'src="/static/frontier.js"',
+            page
+        )
+
+        self.assertEqual(
+            script.status_code,
+            200
+        )
+
+        self.assertIn(
+            "/api/frontier",
+            script.text
+        )

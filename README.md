@@ -170,8 +170,7 @@ python -m pytest -v
 JavaScript export tests:
 
 ```bash
-node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs tests/test_benchmark_ui.cjs
-```
+node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs tests/test_benchmark_ui.cjs tests/test_frontier_ui.cjs```
 Node.js is required for frontend testing only, not for
 running the dashboard.
 
@@ -426,6 +425,34 @@ and the interactive API documentation.
 
 Dashboard integration is planned.
 
+## Efficient Frontier
+
+Select **Build efficient frontier** to examine the historically
+estimated tradeoff between annualized return and volatility
+for Portfolio A.
+
+Enter a maximum allocation percentage and an assumed
+annual risk-free rate.
+
+The engine minimizes variance at increasing feasible
+return targets using the same long-only allocation
+constraints as portfolio optimization.
+
+The chart displays the current portfolio and maximum-Sharpe
+portfolio when available.
+
+Users can select individual frontier points to inspect
+their corresponding asset allocations.
+
+The API supports 2 to 50 requested sample points through
+POST /api/frontier, with 25 points by default.
+
+Degenerate histories may produce fewer points.
+
+Historical estimates do not guarantee future returns.
+Recurring contributions, taxes and trading costs are not
+included.
+
 ## Portfolio Stress Testing
 
 Select **Run portfolio stress test** to evaluate Portfolio A
@@ -480,6 +507,7 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/stress-test` | Evaluate hypothetical asset price shocks |
 | POST | `/api/benchmark` | Compare historical performance with a reference asset |
 | POST | `/api/optimize` | Compare minimum-volatility and maximum-Sharpe allocations |
+| POST | `/api/frontier` | Calculate historically estimated efficient allocations |
 
 Historical dates use YYYY-MM-DD, with an exclusive end date.
 Portfolio weights are fractional allocations. Totals between

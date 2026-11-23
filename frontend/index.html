@@ -14,6 +14,7 @@
     <script src="/static/backtest.js" defer></script>
     <script src="/static/stress-test.js" defer></script>
     <script src="/static/benchmark.js" defer></script>
+    <script src="/static/frontier.js" defer></script>
 
 </head>
 <body>
@@ -207,6 +208,49 @@ AMZN, 15</textarea>
                        role="status"
                        aria-live="polite">
                         Ready to compare.
+                    </p>
+
+                </div>
+
+                <div class="frontier-controls">
+
+                    <label for="frontier-cap">
+                        Maximum asset weight (%)
+                    </label>
+
+                    <input id="frontier-cap"
+                           type="number"
+                           min="0.01"
+                           max="100"
+                           step="0.01"
+                           value="100">
+
+                    <label for="frontier-rate">
+                        Annual risk-free rate (%)
+                    </label>
+
+                    <input id="frontier-rate"
+                           type="number"
+                           step="0.01"
+                           value="0">
+
+                    <button id="run-frontier"
+                            type="button"
+                            aria-describedby="frontier-hint">
+                        Build efficient frontier
+                    </button>
+
+                    <p id="frontier-hint" class="muted">
+                        Uses Portfolio A and historical dates.
+                        The risk-free rate is an assumption
+                        for Sharpe calculations.
+                    </p>
+
+                    <p id="frontier-status"
+                       class="muted"
+                       role="status"
+                       aria-live="polite">
+                        Ready to optimize.
                     </p>
 
                 </div>
@@ -668,6 +712,81 @@ AMZN, 15</textarea>
                     </p>
 
                 </section>
+                <section id="frontier-results"
+                         class="panel chart-panel"
+                         aria-label="Efficient frontier results"
+                         hidden>
+
+                    <h2>Efficient frontier | Portfolio A</h2>
+
+                    <p id="frontier-summary" class="muted"></p>
+
+                    <p id="frontier-warning" class="muted"></p>
+
+                    <p class="muted">
+                        Vertical axis: estimated annualized return.
+                        Horizontal axis: annualized volatility.
+                    </p>
+
+                    <svg id="frontier-chart"
+                         class="backtest-chart"
+                         role="img"
+                         aria-label="Estimated annual return versus volatility"
+                         viewBox="0 0 760 285">
+                    </svg>
+
+                    <div class="legend">
+
+                        <span>
+                            <i class="median"></i>
+                            Efficient frontier
+                        </span>
+
+                        <span>
+                            <i class="comparison-color"></i>
+                            Current portfolio
+                        </span>
+
+                        <span id="frontier-sharpe-legend">
+                            <i class="frontier-sharpe-key"></i>
+                            Maximum Sharpe
+                        </span>
+
+                    </div>
+
+                    <label for="frontier-select">
+                        Inspect an efficient allocation
+                    </label>
+
+                    <select id="frontier-select"></select>
+
+                    <p id="frontier-point-summary" class="muted"></p>
+
+                    <div class="table-wrap">
+
+                        <table>
+
+                            <thead>
+                                <tr>
+                                    <th scope="col">Asset</th>
+                                    <th scope="col">Weight</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="frontier-weights"></tbody>
+
+                        </table>
+
+                    </div>
+
+                    <p class="muted">
+                        The curve samples historically estimated
+                        risk-return tradeoffs. It is not a forecast
+                        or trading recommendation.
+                    </p>
+
+                </section>
+
                 <section id="stress-results"
                          class="panel chart-panel"
                          aria-label="Portfolio stress test results"
