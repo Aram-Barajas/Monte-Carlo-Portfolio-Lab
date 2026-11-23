@@ -170,8 +170,8 @@ python -m pytest -v
 JavaScript export tests:
 
 ```bash
-node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs```
-
+node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs tests/test_benchmark_ui.cjs
+```
 Node.js is required for frontend testing only, not for
 running the dashboard.
 
@@ -365,7 +365,17 @@ Historical comparisons do not predict future performance.
 
 The engine is available through POST /api/benchmark
 and the interactive API documentation.
-Dashboard integration is planned.
+Enter a reference ticker (SPY by default) and select
+**Compare against benchmark** in the dashboard.
+
+The comparison uses Portfolio A, the historical dates,
+and the initial investment.
+
+The chart shows both historical value trajectories on
+the same scale, followed by a side-by-side metrics table.
+
+Portfolio B and monthly contributions do not affect
+this comparison.
 
 ## Portfolio Stress Testing
 

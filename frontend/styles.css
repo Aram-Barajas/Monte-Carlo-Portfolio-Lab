@@ -848,3 +848,46 @@ button {
 #stress-summary {
     overflow-wrap: anywhere;
 }
+/* Historical benchmark comparison */
+
+.benchmark-controls {
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
+    padding-top: 1rem;
+}
+
+#run-benchmark {
+    background: transparent;
+    color: var(--green);
+    border: 1px solid var(--green);
+}
+
+    #run-benchmark:hover {
+        background: var(--field);
+    }
+
+#benchmark-status.error {
+    color: var(--error);
+}
+
+#benchmark-results {
+    margin-top: 1.5rem;
+}
+
+#benchmark-allocation {
+    overflow-wrap: anywhere;
+}
+
+.benchmark-excess {
+    font-weight: 700;
+    color: var(--green);
+}
+
+.benchmark-value {
+    stroke: var(--comparison-line);
+    stroke-dasharray: 6 4;
+}
+
+#benchmark-results .median {
+    background: var(--chart-median);
+}

@@ -13,6 +13,7 @@
     <script src="/static/app.js" defer></script>
     <script src="/static/backtest.js" defer></script>
     <script src="/static/stress-test.js" defer></script>
+    <script src="/static/benchmark.js" defer></script>
 
 </head>
 <body>
@@ -176,6 +177,40 @@ AMZN, 15</textarea>
                     </p>
 
                 </div>
+
+                <div class="benchmark-controls">
+
+                    <label for="benchmark-ticker">
+                        Benchmark ticker
+                    </label>
+
+                    <input id="benchmark-ticker"
+                           type="text"
+                           value="SPY"
+                           maxlength="20"
+                           aria-describedby="benchmark-hint">
+
+                    <button id="run-benchmark"
+                            type="button"
+                            aria-describedby="benchmark-hint">
+                        Compare against benchmark
+                    </button>
+
+                    <p id="benchmark-hint" class="muted">
+                        Compare Portfolio A with a reference asset over the
+                        same historical dates and initial investment.
+                        No monthly contributions or Portfolio B.
+                    </p>
+
+                    <p id="benchmark-status"
+                       class="muted"
+                       role="status"
+                       aria-live="polite">
+                        Ready to compare.
+                    </p>
+
+                </div>
+
                 <div class="stress-controls">
 
                     <label class="compare-switch">
@@ -561,68 +596,6 @@ AMZN, 15</textarea>
                         </svg>
 
                     </section>
-                    <section id="stress-results"
-                             class="panel chart-panel"
-                             aria-label="Portfolio stress test results"
-                             hidden>
-
-                        <h2>Portfolio stress testing | Portfolio A</h2>
-
-                        <p id="stress-summary" class="muted"></p>
-
-                        <div class="table-wrap">
-
-                            <table>
-
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Scenario</th>
-                                        <th scope="col">Return</th>
-                                        <th scope="col">Dollar change</th>
-                                        <th scope="col">Ending value</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody id="stress-scenarios"></tbody>
-
-                            </table>
-
-                        </div>
-
-                        <label for="stress-scenario-select">
-                            Inspect asset contributions
-                        </label>
-
-                        <select id="stress-scenario-select"></select>
-
-                        <div class="table-wrap">
-
-                            <table>
-
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Asset</th>
-                                        <th scope="col">Allocation</th>
-                                        <th scope="col">Price shock</th>
-                                        <th scope="col">Dollar change</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody id="stress-assets"></tbody>
-
-                            </table>
-
-                        </div>
-
-                        <p class="muted">
-                            These are instantaneous hypothetical scenarios,
-                            not forecasts.
-
-                            Uniform shocks do not measure diversification benefits.
-                        </p>
-
-                    </section>
-
                     <p class="muted">
                         Hypothetical fixed allocation with daily rebalancing.
                         No cash flows, fees or taxes. Past performance is
@@ -630,6 +603,134 @@ AMZN, 15</textarea>
                     </p>
 
                 </section>
+                <section id="benchmark-results"
+                         class="panel chart-panel"
+                         aria-label="Historical benchmark comparison"
+                         hidden>
+
+                    <h2>Historical benchmark comparison</h2>
+
+                    <p id="benchmark-period" class="eyebrow"></p>
+
+                    <p id="benchmark-allocation" class="muted"></p>
+
+                    <p id="benchmark-excess"
+                       class="benchmark-excess"></p>
+
+                    <svg id="benchmark-chart"
+                         class="backtest-chart"
+                         role="img"
+                         aria-label="Portfolio and benchmark historical value by date"
+                         viewBox="0 0 760 245">
+                    </svg>
+
+                    <div class="legend">
+
+                        <span>
+                            <i class="median"></i>
+                            Portfolio A
+                        </span>
+
+                        <span>
+                            <i class="comparison-color"></i>
+                            <span id="benchmark-legend-name"></span>
+                        </span>
+
+                    </div>
+
+                    <div class="table-wrap">
+
+                        <table>
+
+                            <thead>
+                                <tr>
+                                    <th scope="col">Metric</th>
+
+                                    <th scope="col">Portfolio A</th>
+
+                                    <th scope="col"
+                                        id="benchmark-name">
+                                        Benchmark
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="benchmark-table"></tbody>
+
+                        </table>
+
+                    </div>
+
+                    <p class="muted">
+                        Both investments use identical dates and initial capital.
+                        Return differences are in percentage points (pp), not alpha.
+                        Past performance is not a guarantee of future results.
+                    </p>
+
+                </section>
+                <section id="stress-results"
+                         class="panel chart-panel"
+                         aria-label="Portfolio stress test results"
+                         hidden>
+
+                    <h2>Portfolio stress testing | Portfolio A</h2>
+
+                    <p id="stress-summary" class="muted"></p>
+
+                    <div class="table-wrap">
+
+                        <table>
+
+                            <thead>
+                                <tr>
+                                    <th scope="col">Scenario</th>
+                                    <th scope="col">Return</th>
+                                    <th scope="col">Dollar change</th>
+                                    <th scope="col">Ending value</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="stress-scenarios"></tbody>
+
+                        </table>
+
+                    </div>
+
+                    <label for="stress-scenario-select">
+                        Inspect asset contributions
+                    </label>
+
+                    <select id="stress-scenario-select"></select>
+
+                    <div class="table-wrap">
+
+                        <table>
+
+                            <thead>
+                                <tr>
+                                    <th scope="col">Asset</th>
+                                    <th scope="col">Allocation</th>
+                                    <th scope="col">Price shock</th>
+                                    <th scope="col">Dollar change</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="stress-assets"></tbody>
+
+                        </table>
+
+                    </div>
+
+                    <p class="muted">
+                        These are instantaneous hypothetical scenarios,
+                        not forecasts.
+
+                        Uniform shocks do not measure diversification benefits.
+                    </p>
+
+                </section>
+
+
 
             </section>
         </div>

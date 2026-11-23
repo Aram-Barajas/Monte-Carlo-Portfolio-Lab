@@ -54,7 +54,12 @@ async function requestBacktest(payload, fetcher = fetch) {
 }
 
 
-function backtestChartLayout(trajectory, key, width) {
+function backtestChartLayout(
+    trajectory,
+    key,
+    width,
+    reference = []
+) {
     const left = 70;
     const right = width - 24;
 
@@ -67,6 +72,15 @@ function backtestChartLayout(trajectory, key, width) {
         isDrawdown ? -row.drawdown : row.value
     );
 
+    const referenceValues = reference.map(row =>
+        isDrawdown ? -row.drawdown : row.value
+    );
+
+    const allValues = [
+        ...values,
+        ...referenceValues
+    ];
+
     const dates = trajectory.map(row =>
         Date.parse(row.date)
     );
@@ -75,12 +89,12 @@ function backtestChartLayout(trajectory, key, width) {
     const last = dates.at(-1);
 
     const min = isDrawdown
-        ? Math.min(-0.01, ...values)
+        ? Math.min(-0.01, ...allValues)
         : 0;
 
     const max = isDrawdown
         ? 0
-        : Math.max(1, ...values);
+        : Math.max(1, ...allValues);
 
     const x = date =>
         left +
@@ -103,9 +117,17 @@ function backtestChartLayout(trajectory, key, width) {
             y: y(value)
         })),
 
+        referencePoints: referenceValues.map(
+            (value, index) => ({
+                x: x(Date.parse(reference[index].date)),
+                y: y(value)
+            })
+        ),
+
         ticks: Array.from(
             { length: 5 },
             (_, index) => {
+
                 const value =
                     min + (max - min) * index / 4;
 
@@ -119,13 +141,22 @@ function backtestChartLayout(trajectory, key, width) {
 }
 
 
-function drawBacktestChart(chart, trajectory, key) {
-    const width = Math.max(280, chart.clientWidth);
+function drawBacktestChart(
+    chart,
+    trajectory,
+    key,
+    reference = []
+) {
+    const width = Math.max(
+        280,
+        chart.clientWidth
+    );
 
     const layout = backtestChartLayout(
         trajectory,
         key,
-        width
+        width,
+        reference
     );
 
     chart.setAttribute(
@@ -190,6 +221,18 @@ function drawBacktestChart(chart, trajectory, key) {
             ? "backtest-drawdown"
             : "backtest-value"
     });
+
+    if (layout.referencePoints.length) {
+
+        svg("polyline", {
+
+            points: layout.referencePoints.map(
+                point => `${point.x},${point.y}`
+            ).join(" "),
+
+            class: "benchmark-value"
+        });
+    }
 
     // Historical date labels.
 
