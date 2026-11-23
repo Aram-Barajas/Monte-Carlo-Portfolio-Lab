@@ -153,8 +153,10 @@ def simulate_portfolio(
         factor = eigenvectors * np.sqrt(np.maximum(eigenvalues, 0.0))
         if model == "gaussian_uncertain":
             # Draw one uncertain mean per path, held fixed for the entire horizon.
-            # Conditional on the IID Gaussian model, Cov(sample mean) = Sigma/n.
-            drift = drift + (drift_weight / np.sqrt(len(returns))) * (
+            # Under the IID Gaussian assumption, Cov(sample mean) = Sigma/n.
+            # Shrinking the point estimate toward zero does NOT reduce the
+            # amount of estimation noise in that historical sample.
+            drift = drift + (1.0 / np.sqrt(len(returns))) * (
                 rng.standard_normal((num_simulations, len(weights))) @ factor.T
             )
 

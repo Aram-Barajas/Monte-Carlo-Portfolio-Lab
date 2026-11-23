@@ -1,9 +1,8 @@
-numpy
+# Production dependencies. Bounded major versions; this is not a lock file.
+numpy>=1.26,<3
 scipy>=1.16,<2
-pandas
-yfinance
-pytest
-fastapi
+pandas>=2.2,<4
+yfinance>=0.2,<1
+fastapi>=0.115,<1
 pydantic>=2,<3
-uvicorn
-httpx
+uvicorn>=0.30,<1

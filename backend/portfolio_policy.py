@@ -41,6 +41,8 @@ class PortfolioTracker:
         if self.rebalancing == "daily" and self.cost_rate == 0:
             # Preserve the original fast fixed-weight behavior with zero costs.
             self.values = self.values * (gross_returns @ self.weights) + contribution
+            # Maintain the same self-financing holdings invariant as the general path.
+            self.holdings = self.values[:, None] * self.weights
             return self.values
 
         self.holdings *= gross_returns

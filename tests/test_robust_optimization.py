@@ -98,7 +98,8 @@ class RobustOptimizationTests(unittest.TestCase):
         covariance = .75 * covariance + .25 * np.diag(np.diag(covariance))
         initial = np.full(5, .2)
         weights = np.array(list(result["robust"]["weights"].values()))
-        utility = lambda w: mean @ w - 2.5 * (w @ covariance @ w)
+        def utility(w):
+            return mean @ w - 2.5 * (w @ covariance @ w)
         self.assertGreaterEqual(utility(weights) + 1e-9, utility(initial))
         self.assertAlmostEqual(weights.sum(), 1)
         self.assertLessEqual(weights.max(), .4 + 1e-8)

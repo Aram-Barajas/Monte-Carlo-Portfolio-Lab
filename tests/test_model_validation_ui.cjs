@@ -54,7 +54,7 @@ test("dashboard switches models and retains previous validation results on error
         if (!nodes.has(id)) nodes.set(id, node());
         return nodes.get(id);
     };
-    const scores = { coverage_50: .5, coverage_90: 1, below_05: 0, above_95: 0,
+    const scores = { coverage_50: .5, coverage_90: 1, coverage_90_wilson_reference: [.44, 1], below_05: 0, above_95: 0,
         mean_width_90: .2, mean_absolute_error: .05, median_bias: -.01, mean_crps: .03,
         mean_brier_loss: .1, pit_histogram: [0, 0, 0, 0, 0, 3, 0, 0, 0, 0] };
     const forecast = { p05: -.1, p95: .1, median: .02, probability_loss: .4, crps: .04 };
@@ -74,7 +74,7 @@ test("dashboard switches models and retains previous validation results on error
     vm.runInContext(fs.readFileSync(require.resolve("../frontend/model-validation.js"), "utf8"), context);
     await $("run-validation").handlers.click();
     assert.equal($("validation-results").hidden, false);
-    assert.equal($("validation-scores").children.length, 9);
+    assert.equal($("validation-scores").children.length, 10);
     assert.equal($("validation-fold-table").children[0].children[4].textContent, "2.00%");
     assert.equal($("validation-pit").children[5].children[1].textContent, "3");
     $("validation-model").value = "gaussian_uncertain";

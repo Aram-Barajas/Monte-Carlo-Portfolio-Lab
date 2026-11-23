@@ -48,11 +48,21 @@ def score_forecast(samples, actual):
 
 
 def _summarize(scores):
+    # Wilson reference interval assumes independent Bernoulli folds. This is
+    # descriptive only: market regimes and adjacent folds may be dependent.
+    n = len(scores)
+    successes = sum(row["inside_90"] for row in scores)
+    p = successes / n
+    z = 1.96
+    denominator = 1 + z*z/n
+    center = (p + z*z/(2*n)) / denominator
+    spread = z * np.sqrt(p*(1-p)/n + z*z/(4*n*n)) / denominator
     def average(key):
         return float(np.mean([row[key] for row in scores]))
     histogram, _ = np.histogram([row["pit"] for row in scores], bins=np.linspace(0, 1, 11))
     summary = {
         "coverage_50": average("inside_50"), "coverage_90": average("inside_90"),
+        "coverage_90_wilson_reference": [float(max(0., center-spread)), float(min(1., center+spread))],
         "below_05": sum(row["below_05"] for row in scores),
         "above_95": sum(row["above_95"] for row in scores),
         "mean_absolute_error": average("absolute_error"),
@@ -61,7 +71,8 @@ def _summarize(scores):
         "mean_crps": average("crps"), "mean_brier_loss": average("brier_loss"),
         "pit_histogram": histogram.tolist(),
     }
-    if not all(np.isfinite(v) for k, v in summary.items() if k != "pit_histogram"):
+    if not all(np.isfinite(v) for k, v in summary.items()
+               if k not in ("pit_histogram", "coverage_90_wilson_reference")):
         raise ValueError("Aggregate forecast scores exceeded numerical limits.")
     return summary
 

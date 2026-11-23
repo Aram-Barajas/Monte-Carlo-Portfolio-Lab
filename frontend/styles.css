@@ -1030,6 +1030,19 @@ main#workspace {
 #frontier-chart .frontier-sharpe { fill: var(--ink); }
 #frontier-chart .frontier-selected { fill: none; stroke: var(--chart-median); }
 
+.personal-tools { margin-top: 1.5rem; padding: 1rem; }
+.personal-tools h3 { font-size: .95rem; margin: 0 0 .5rem; }
+.personal-tools label { margin-top: .8rem; }
+.personal-tools button { margin-top: .5rem; }
+.personal-tools .personal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+#personal-status, #personal-concentration { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
 @media (max-width: 520px) {
     .workspace-nav { flex-wrap: nowrap; overflow-x: auto; }
     .workspace-nav a { flex: 0 0 auto; white-space: nowrap; padding: .65rem .65rem; }

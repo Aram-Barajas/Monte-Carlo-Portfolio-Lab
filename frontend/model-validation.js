@@ -114,10 +114,12 @@ function initValidationDashboard() {
             " | bootstrap block " + data.block_length + " days | seed " + data.seed + " | " +
             Object.entries(data.weights).map(([ticker, weight]) => ticker + " " + percent(weight)).join(", ");
         $("validation-warning").textContent = "Only " + data.fold_count +
-            " realized outcomes per model. Coverage and PIT are descriptive; the outcomes are not necessarily independent.";
+            " realized outcomes per model. Coverage and PIT are descriptive; the outcomes are not necessarily independent. " +
+            "The Wilson range below is an independent-outcome reference only, not a guarantee of forecast coverage.";
         const specs = [
             ["50% interval coverage", "coverage_50", percent],
             ["90% interval coverage", "coverage_90", percent],
+            ["90% coverage range (IID reference)", "coverage_90_wilson_reference", value => value ? percent(value[0]) + "–" + percent(value[1]) : "N/A"],
             ["Below 5th percentile (count)", "below_05", String],
             ["Above 95th percentile (count)", "above_95", String],
             ["Mean 90% interval width", "mean_width_90", percent],

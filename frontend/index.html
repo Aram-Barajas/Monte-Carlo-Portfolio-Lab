@@ -21,6 +21,7 @@
     <script src="/static/model-validation.js" defer></script>
     <script src="/static/discovery.js" defer></script>
     <script src="/static/workspace.js" defer></script>
+    <script src="/static/personal-portfolio.js" defer></script>
 
 </head>
 <body>
@@ -91,6 +92,11 @@ AMZN, 15</textarea>
                             <input id="end" type="date" value="2026-01-01" required>
                         </label>
                     </div>
+                    <label data-controls="overview simulation backtesting risk" for="analysis-rate">
+                        Annual risk-free rate assumption (%)
+                        <input id="analysis-rate" type="number" min="-5" max="50" step=".01" value="0">
+                        <small>Used for historical Sharpe ratios in overview, simulations, backtests and benchmarks. Zero is an assumption, not today's Treasury yield. Optimization and discovery use their separate rate controls.</small>
+                    </label>
 
                     <label class="shared-capital" data-controls="simulation backtesting stress planning" hidden>
                         Initial investment ($)
@@ -192,11 +198,11 @@ AMZN, 15</textarea>
 
                     <label for="simulation-model">Simulation model</label>
                     <select id="simulation-model" aria-describedby="model-hint">
-                        <option value="gaussian">Gaussian (fixed historical mean)</option>
-                        <option value="gaussian_uncertain">Gaussian (uncertain mean)</option>
+                        <option value="gaussian">Gaussian (fixed mean; conditional, not calibrated)</option>
+                        <option value="gaussian_uncertain" selected>Gaussian (uncertain historical mean; recommended baseline)</option>
                         <option value="block_bootstrap">Historical block bootstrap</option>
                     </select>
-                    <small id="model-hint">Choose a hypothetical return-generation model.</small>
+                    <small id="model-hint">The uncertain-mean model includes an IID sampling-error approximation, not a guarantee of real-market calibration.</small>
 
                     <label id="block-length-control" hidden>
                         Historical block length (trading days)
@@ -496,7 +502,7 @@ WMT</textarea>
                     <select id="discovery-objective">
                         <option value="volatility_reduction">Volatility reduction</option>
                         <option value="sharpe_improvement">Sharpe ratio improvement</option>
-                        <option value="return_improvement">Annualized return improvement</option>
+                        <option value="return_improvement">Historical return improvement (performance chasing; interpret cautiously)</option>
                     </select>
                     <label for="discovery-holdout">Reserved validation history (%)</label>
                     <input id="discovery-holdout" type="number" min="10" max="50" step="1" value="25">
@@ -506,6 +512,25 @@ WMT</textarea>
                     <p class="muted">Test each asset separately, funded by proportionally reducing current holdings. Candidates must match the portfolio's historical dates. No actual trades are placed.</p>
                     <p id="discovery-status" class="muted" role="status" aria-live="polite">Ready to screen.</p>
                 </div>
+                <section class="panel personal-tools" aria-labelledby="personal-tools-title">
+                    <h3 id="personal-tools-title">Local portfolio workspace</h3>
+                    <p class="muted">Optional. Holdings stay in this browser; no brokerage account connections or uploads. Shared computers can access browser storage.</p>
+                    <label for="personal-name">Portfolio name</label>
+                    <input id="personal-name" type="text" maxlength="60" placeholder="My research allocation">
+                    <button id="personal-save" type="button">Save current allocation locally</button>
+                    <label for="personal-saved">Saved allocations</label>
+                    <select id="personal-saved" aria-label="Saved portfolio allocations"></select>
+                    <div class="personal-actions">
+                        <button id="personal-load" type="button">Load</button>
+                        <button id="personal-delete" type="button">Delete</button>
+                    </div>
+                    <label for="personal-csv">Import holdings CSV</label>
+                    <input id="personal-csv" type="file" accept=".csv,text/csv">
+                    <small>Headers: ticker,weight (percentage) or ticker,shares,price. Maximum 20 tickers and 100 KB. Only ticker and allocation values are read. Preview by reviewing the updated allocation; importing never saves automatically.</small>
+                    <button id="personal-import" type="button">Import CSV into allocation</button>
+                    <p class="muted" id="personal-concentration"></p>
+                    <p id="personal-status" role="status" aria-live="polite" class="muted"></p>
+                </section>
             </aside>
 
             <section class="results" aria-label="Research results">

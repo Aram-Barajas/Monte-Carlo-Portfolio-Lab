@@ -125,7 +125,7 @@ test("historical overview renders independently and simulation updates both view
         end: "2026-01-01", initial: "1000", monthly: "100", years: "1", paths: "500",
         confidence: "95", seed: "", "block-length": "10", "drift-weight": "50",
         rebalancing: "threshold", "rebalance-threshold": "5", "trading-cost-bps": "20",
-        "annual-inflation": "3" })) {
+        "annual-inflation": "3", "analysis-rate": "3.5" })) {
         find(id).value = value;
     }
     find("initial").checkValidity = () => true;
@@ -138,6 +138,7 @@ test("historical overview renders independently and simulation updates both view
     assert.equal(submitted.rebalance_threshold, .05);
     assert.equal(submitted.trading_cost_bps, 20);
     assert.equal(submitted.annual_inflation, .03);
+    assert.equal(submitted.annual_risk_free_rate, .035);
     context.updateRebalancingControls();
     assert.equal(find("rebalance-threshold-control").hidden, false);
     find("rebalancing").value = "buy_hold";

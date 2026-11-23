@@ -37,6 +37,7 @@ from .model_validation import validate_models, MAX_VALIDATION_DRAWS
 from .discovery import screen_candidates, MAX_CANDIDATES
 from .http_security import HttpSecurityMiddleware, HttpLimits
 from .portfolio_policy import inflation_factors
+from .data_quality import describe_historical_data
 from .advanced_risk import (
     CRISIS_WINDOWS, calculate_risk_contributions, calculate_rolling_risk,
     replay_crisis,
@@ -53,6 +54,7 @@ FRONTEND_ASSETS = frozenset({
     "styles.css", "app.js", "export.js", "chart-tools.js", "backtest.js",
     "benchmark.js", "stress-test.js", "frontier.js", "robust-optimization.js",
     "advanced-risk.js", "planning.js", "model-validation.js", "discovery.js", "workspace.js",
+    "personal-portfolio.js",
 })
 
 
@@ -108,7 +110,7 @@ class MarketRequest(BaseModel):
 class PortfolioRequest(MarketRequest):
     weights: dict[str, float]
     confidence: float = Field(default=0.95, gt=0, lt=1)
-    annual_risk_free_rate: float = 0.0
+    annual_risk_free_rate: float = Field(default=0.0, ge=-.05, le=.5)
 
     @model_validator(mode="after")
     def validate_allocation(self):
@@ -295,7 +297,7 @@ class BenchmarkRequest(BacktestRequest):
         return self
 
 class SimulationRequest(TradingPolicyRequest):
-    model: Literal["gaussian", "gaussian_uncertain", "block_bootstrap"] = "gaussian"
+    model: Literal["gaussian", "gaussian_uncertain", "block_bootstrap"] = "gaussian_uncertain"
     block_length: int = Field(default=5, ge=1, le=252)
     drift_weight: float = Field(default=1.0, ge=0, le=1)
     annual_inflation: float = Field(default=0, ge=-.05, le=.25)
@@ -444,6 +446,8 @@ def analyze_portfolio(returns, request):
         "weights": request.weights,
 
         "observations": len(returns),
+
+        "data_quality": describe_historical_data(returns),
 
         "asset_metrics": frame_records(
             calculate_asset_metrics(returns),
