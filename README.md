@@ -196,7 +196,7 @@ random seed, when available.
 ## Research Workspace
 
 Use the navigation to switch between Overview, Simulation, Backtesting,
-Optimization and Stress testing. Each view displays its own controls and
+Optimization, Stress testing and Risk analytics. Each view displays its own controls and
 results. Portfolio A and applicable dates/capital are shared; switching
 views preserves entered settings and completed results until page reload.
 Browser back and forward navigation works through URL fragments.
@@ -215,7 +215,7 @@ python -m pytest -v
 JavaScript export tests:
 
 ```bash
-node --test tests/test_csv_export.cjs tests/test_chart_tools.cjs tests/test_backtest_ui.cjs tests/test_stress_ui.cjs tests/test_benchmark_ui.cjs tests/test_frontier_ui.cjs tests/test_workspace_ui.cjs
+node --test tests/test_*.cjs
 ```
 Node.js is required for frontend testing only, not for
 running the dashboard.
@@ -635,6 +635,41 @@ Asset-specific shocks can illustrate differences in exposure.
 These scenarios are not forecasts or estimates of the
 probability of a market crash.
 
+## Advanced Risk Analytics
+
+The Risk analytics workspace separates allocation weight from historical
+volatility contribution. With annualized covariance matrix C, weights w
+and portfolio volatility sigma, an asset's component contribution is
+w[i] * (Cw)[i] / sigma. Contributions sum to portfolio volatility;
+their shares sum to 100%. Negative shares can occur when an asset's
+co-movement reduces total risk. When volatility is effectively zero,
+risk shares and the diversification ratio are undefined. The ratio is
+weighted average asset volatility divided by portfolio volatility.
+
+Rolling charts show trailing compounded returns (not annualized) and
+annualized sample volatility using 252 trading days. Choose 21, 63, 126
+or 252 observations. The charts use overlapping daily-rebalanced
+historical returns; short histories may support attribution but not
+the requested rolling window.
+
+The Stress testing workspace also supports historical crisis replays:
+
+| Scenario | Inclusive closing-price dates |
+| --- | --- |
+| Global financial crisis | 2007-10-09 to 2009-03-09 |
+| COVID-19 sell-off | 2020-02-19 to 2020-03-23 |
+| 2022 bear market | 2022-01-03 to 2022-10-12 |
+
+Each uses Portfolio A's current allocation and initial capital,
+rebalanced daily, compared against buy-and-hold SPY, without new
+contributions or trading costs. The selected crisis overrides the
+normal history dates. All assets must cover both preset endpoints with
+no gaps in the returned shared price dates; dates absent from the entire
+provider dataset cannot be independently detected. Newer assets may
+not have sufficient history. Replaying today's assets in the past
+introduces hindsight and survivorship bias. These selected windows
+are illustrative, not predictions or exhaustive crisis scenarios.
+
 ## REST API
 
 Start the FastAPI server from the repository root:
@@ -654,6 +689,8 @@ Interactive API documentation: http://127.0.0.1:8000/docs
 | POST | `/api/compare` | Compare two allocations under shared assumptions |
 | POST | `/api/backtest` | Replay a portfolio over historical market prices |
 | POST | `/api/stress-test` | Evaluate hypothetical asset price shocks |
+| POST | `/api/risk-analysis` | Euler volatility attribution and rolling historical statistics |
+| POST | `/api/crisis-replay` | Replay predefined historical crisis windows against SPY |
 | POST | `/api/benchmark` | Compare historical performance with a reference asset |
 | POST | `/api/optimize` | Compare minimum-volatility and maximum-Sharpe allocations |
 | POST | `/api/frontier` | Calculate historically estimated efficient allocations |

@@ -988,6 +988,11 @@ main#workspace {
 .tool-controls h3 { font-size: .9rem; margin: 1rem 0 .4rem; }
 #overview-status { margin-bottom: 0; overflow-wrap: anywhere; }
 #overview-status.error { color: var(--error); }
+#advanced-risk-status.error, #crisis-status.error { color: var(--error); }
+#advanced-risk-results, #crisis-results { min-width: 0; margin-top: 1rem; }
+#rolling-charts h3 { margin-top: 1.25rem; font-size: .95rem; }
+#advanced-risk-summary, #crisis-summary { overflow-wrap: anywhere; }
+#advanced-risk-status, #crisis-status { overflow-wrap: anywhere; }
 .export-panel { padding: .75rem 1rem; }
 .export-panel summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--green); }
 .export-panel[open] summary { margin-bottom: .75rem; }

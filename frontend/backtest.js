@@ -68,6 +68,7 @@ function backtestChartLayout(
     const bottom = 215;
 
     const isDrawdown = key === "drawdown";
+    const isRate = key === "rate";
 
     const values = trajectory.map(row =>
         isDrawdown ? -row.drawdown : row.value
@@ -91,11 +92,11 @@ function backtestChartLayout(
 
     const min = isDrawdown
         ? Math.min(-0.01, ...allValues)
-        : 0;
+        : isRate ? Math.min(0, ...allValues) : 0;
 
     const max = isDrawdown
         ? 0
-        : Math.max(1, ...allValues);
+        : Math.max(isRate ? 0.01 : 1, ...allValues);
 
     const x = date =>
         left +
@@ -205,7 +206,7 @@ function drawBacktestChart(
             x: layout.left - 8,
             y: tick.y + 4,
             "text-anchor": "end"
-        }, key === "drawdown"
+        }, key === "drawdown" || key === "rate"
             ? (tick.value * 100).toFixed(1) + "%"
             : compactMoney.format(tick.value)
         );
