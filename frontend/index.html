@@ -15,6 +15,7 @@
     <script src="/static/stress-test.js" defer></script>
     <script src="/static/benchmark.js" defer></script>
     <script src="/static/frontier.js" defer></script>
+    <script src="/static/advanced-risk.js" defer></script>
     <script src="/static/workspace.js" defer></script>
 
 </head>
@@ -51,6 +52,7 @@
             <a href="#backtesting" data-workspace-tab="backtesting">Backtesting</a>
             <a href="#optimization" data-workspace-tab="optimization">Optimization</a>
             <a href="#stress" data-workspace-tab="stress">Stress testing</a>
+            <a href="#risk" data-workspace-tab="risk">Risk analytics</a>
         </nav>
 
         <div class="layout">
@@ -74,7 +76,7 @@ AMZN, 15</textarea>
                         are normalized automatically. BRK.B is accepted.
                     </small>
 
-                    <div class="fields shared-fields" data-controls="overview simulation backtesting optimization">
+                    <div class="fields shared-fields" data-controls="overview simulation backtesting optimization risk">
                         <label>History start
                             <input id="start" type="date" value="2023-01-01" required>
                         </label>
@@ -358,6 +360,30 @@ AMZN, 15</textarea>
                         Ready to stress test.
                     </p>
 
+                </div>
+                <div class="tool-controls" data-controls="stress" hidden>
+                    <h3>Historical crisis replay</h3>
+                    <label for="crisis-scenario">Historical period</label>
+                    <select id="crisis-scenario">
+                        <option value="gfc">Global financial crisis (2007-2009)</option>
+                        <option value="covid" selected>COVID-19 sell-off (2020)</option>
+                        <option value="bear_2022">2022 bear market</option>
+                    </select>
+                    <button id="run-crisis" type="button">Replay crisis</button>
+                    <p class="muted">Uses the selected crisis dates, Portfolio A and starting capital. Requires complete data for every asset and SPY.</p>
+                    <p id="crisis-status" class="muted" role="status" aria-live="polite">Ready to replay.</p>
+                </div>
+                <div class="tool-controls" data-controls="risk" hidden>
+                    <label for="rolling-window">Rolling trading days</label>
+                    <select id="rolling-window">
+                        <option value="21">21 (1 month)</option>
+                        <option value="63" selected>63 (3 months)</option>
+                        <option value="126">126 (6 months)</option>
+                        <option value="252">252 (1 year)</option>
+                    </select>
+                    <button id="run-risk-analysis" type="button">Analyze portfolio risk</button>
+                    <p class="muted">Uses Portfolio A and history dates, assuming daily rebalancing.</p>
+                    <p id="advanced-risk-status" class="muted" role="status" aria-live="polite">Ready to analyze risk.</p>
                 </div>
             </aside>
 
@@ -925,9 +951,41 @@ AMZN, 15</textarea>
                     </p>
 
                 </section>
-
-
-
+                <section id="crisis-results" class="panel chart-panel" hidden>
+                    <h2>Historical crisis replay | Portfolio A</h2>
+                    <p id="crisis-summary" class="muted"></p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th scope="col">Metric</th><th scope="col">Portfolio A</th><th scope="col">SPY</th></tr></thead>
+                            <tbody id="crisis-metrics"></tbody>
+                        </table>
+                    </div>
+                    <svg id="crisis-chart" class="backtest-chart" role="img" aria-label="Historical portfolio and SPY values"></svg>
+                    <div class="legend"><span><i class="median"></i>Portfolio A</span><span><i class="comparison-color"></i>SPY</span></div>
+                    <p class="muted">Daily fixed-weight portfolio versus buy-and-hold SPY. No contributions or trading costs. Replaying today's allocation in the past introduces hindsight and survivorship bias; this is not a forecast.</p>
+                </section>
+                </div>
+                <div data-result-view="risk" hidden>
+                    <section id="advanced-risk-results" class="panel" hidden>
+                        <h2>Risk attribution | Portfolio A</h2>
+                        <p id="advanced-risk-summary" class="muted"></p>
+                        <dl id="advanced-risk-metrics"></dl>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th scope="col">Asset</th><th scope="col">Weight</th><th scope="col">Asset volatility</th><th scope="col">Volatility contribution (pp)</th><th scope="col">Risk share</th></tr></thead>
+                                <tbody id="risk-contributions"></tbody>
+                            </table>
+                        </div>
+                        <p class="muted">Contributions add to annualized portfolio volatility; risk shares add to 100% when defined. Negative contributions indicate historical risk reduction through co-movement. N/A means portfolio volatility is effectively zero.</p>
+                        <p id="rolling-summary" class="muted"></p>
+                        <div id="rolling-charts" hidden>
+                            <h3>Trailing compounded return</h3>
+                            <svg id="rolling-return-chart" class="backtest-chart" role="img" aria-label="Rolling trailing returns"></svg>
+                            <h3>Annualized rolling volatility</h3>
+                            <svg id="rolling-volatility-chart" class="backtest-chart" role="img" aria-label="Rolling annualized volatility"></svg>
+                        </div>
+                        <p class="muted">Returns cover each trailing window and are not annualized. Volatility is annualized using 252 trading days. Historical estimates may change.</p>
+                    </section>
                 </div>
             </section>
         </div>

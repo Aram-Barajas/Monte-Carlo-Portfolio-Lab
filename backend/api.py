@@ -1,7 +1,7 @@
 """REST API for the portfolio analysis engine."""
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from secrets import randbits
 from typing import Literal
@@ -32,6 +32,10 @@ from .benchmark import compare_benchmark
 from .optimization import optimize_portfolio
 from .frontier import calculate_efficient_frontier
 from .portfolio_policy import inflation_factors
+from .advanced_risk import (
+    CRISIS_WINDOWS, calculate_risk_contributions, calculate_rolling_risk,
+    replay_crisis,
+)
 
 app = FastAPI(
     title="Monte Carlo Portfolio Lab",
@@ -100,6 +104,18 @@ class PortfolioRequest(MarketRequest):
 ).to_dict()
 
         return self
+
+
+class RiskAnalysisRequest(PortfolioRequest):
+    rolling_window: int = Field(default=63, ge=2, le=252)
+
+
+class CrisisReplayRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    tickers: list[str] = Field(min_length=1, max_length=20)
+    weights: dict[str, float]
+    scenario: Literal["gfc", "covid", "bear_2022"]
+    initial_value: float = Field(default=1000, gt=0, le=1_000_000_000)
 
 
 class OptimizationRequest(PortfolioRequest):
@@ -582,6 +598,51 @@ def benchmark(request: BenchmarkRequest):
             status_code=422,
             detail=str(error)
         ) from error
+
+
+@app.post("/api/risk-analysis")
+def risk_analysis(request: RiskAnalysisRequest):
+    returns = load_market_data(request).sort_index()
+    try:
+        contribution = calculate_risk_contributions(returns, request.weights)
+        rolling = calculate_rolling_risk(returns, request.weights, request.rolling_window)
+        rolling.index = rolling.index.strftime("%Y-%m-%d")
+        return {
+            "tickers": request.tickers,
+            "weights": request.weights,
+            "observations": len(returns),
+            "first_return_date": returns.index[0].strftime("%Y-%m-%d"),
+            "last_return_date": returns.index[-1].strftime("%Y-%m-%d"),
+            "rolling_window": request.rolling_window,
+            **contribution,
+            "rolling": frame_records(rolling, "date"),
+        }
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.post("/api/crisis-replay")
+def crisis_replay(request: CrisisReplayRequest):
+    _, start, end = CRISIS_WINDOWS[request.scenario]
+    try:
+        settings = BenchmarkRequest(
+            tickers=request.tickers, weights=request.weights,
+            start=start, end=(date.fromisoformat(end) + timedelta(days=1)).isoformat(),
+            benchmark="SPY", initial_value=request.initial_value,
+        )
+        market = MarketRequest(
+            tickers=list(dict.fromkeys(settings.tickers + ["SPY"])),
+            start=settings.start, end=settings.end,
+        )
+        result = replay_crisis(load_market_data(market, prices=True), settings.weights,
+                               request.scenario, settings.initial_value)
+        for name in ("portfolio", "benchmark"):
+            trajectory = result[name]["trajectory"]
+            trajectory.index = trajectory.index.strftime("%Y-%m-%d")
+            result[name]["trajectory"] = frame_records(trajectory, "date")
+        return {"tickers": settings.tickers, "weights": settings.weights, **result}
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @app.post("/api/optimize")
