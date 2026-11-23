@@ -342,8 +342,10 @@ every 21 trading days. The default remains daily rebalancing with zero costs.
 ### Drift sensitivity and interpretation
 
 `drift_weight` is a fraction from 0 to 1. In Gaussian models it scales the
-mean log return; in the uncertain-mean model it also scales the sampled mean
-uncertainty. In the block bootstrap it shifts each historical log return by
+mean log return; in the uncertain-mean model it does **not** scale the
+sampled mean uncertainty, which remains the IID approximation Sigma/n.
+The sample-mean perturbation is independent of the user's scenario drift
+shrinkage. In the block bootstrap it shifts each historical log return by
 `(drift_weight - 1) * historical_mean`, preserving deviations about the mean.
 This is a scenario sensitivity setting, not a statistically fitted shrinkage
 estimator. Zero mean log return does not imply zero mean simple return.
@@ -914,3 +916,121 @@ Common ticker aliases are automatically converted:
 
 These improvements apply to individual portfolio simulations
 and portfolio comparisons.
+
+
+## Private personal-research release candidate (PR #33)
+
+This project is a **research tool**, not a trading or valuation system. This section describes
+the local-first work in PR #33; public deployment is intentionally deferred.
+
+### What the simulation means
+
+The default **dashboard and API** simulation is `gaussian_uncertain`. This models an
+uncertain historical log-return mean under an IID Gaussian sampling approximation.
+`gaussian` remains available as a conditional fixed-mean comparison and
+`block_bootstrap` reuses observed return blocks. **No model guarantees 90% coverage
+of real future returns**. The 5th–95th bands represent modeled quantiles, not
+frequentist confidence intervals for a future market price. Verify the sampling
+assumptions with the walk-forward validation feature and compare multiple
+historical periods. Shrinking expected drift changes the central scenario
+without falsely removing sampling error under the uncertain-mean model.
+
+Model validation now adds a Wilson 95% *independent-fold reference* range around
+its reported 90% interval coverage. Trading-day market outcomes may be
+dependent even when forecasts use disjoint test windows. Therefore the Wilson
+range is a visualization of small-sample uncertainty, **not a statistically
+validated market-coverage confidence interval**.
+
+### Historical data quality and risk-free rates
+
+The portfolio API includes `data_quality` with the number of historical returns,
+available return dates, market-data attribution, and non-destructive warnings
+for short samples or exceptionally large daily moves. Warnings do not discard
+rows. Data is obtained through yfinance and can be revised, delayed, or
+unavailable. For experiments you intend to reproduce, record the date range,
+tickers, normalized weights, model, seed and returned data snapshot externally.
+The tool does not provide licensed point-in-time market-data archives.
+
+The dashboard offers an **annual risk-free assumption in percent** for overview,
+simulations, backtesting and benchmark comparisons; the API expresses the same
+assumption as a **fraction** (`0.04` for 4%). The default zero is only an explicit
+scenario assumption, **not the prevailing Treasury yield**. Optimization and
+discovery have their own rate inputs. Sharpe ratios are historical estimates
+and depend on those assumptions.
+
+### Import holdings and save locally
+
+The local portfolio workspace supports:
+
+- A CSV with `ticker,weight`, using percentage units whose total must be within
+  0.05 percentage points of 100.
+- A CSV with `ticker,shares,price`; the application converts positive quantities
+  and positive prices into weights. These are **user-supplied values**, not quotes
+  checked against a broker.
+- Up to 20 holdings per import, a 100 KB file limit, normalized ticker aliases,
+  and local-only saved allocations (up to 20 names).
+
+CSV files are parsed **inside your browser**. Importing edits only the allocation
+text box for review; it never executes trades, saves automatically, or transmits
+CSV records to the app's backend. You must review the allocation and explicitly
+save it if desired. Saved allocations use browser `localStorage`. On shared
+computers, other users of that browser profile can access them; clearing site
+data deletes saved allocations. Do not import brokerage files containing account
+numbers, balances unrelated to positions, addresses or other private information.
+Only the specified ticker/weight/shares/price columns are used; no transaction
+or credential handling is implemented.
+
+A concentration alert flags individual tickers at or above 25% of total
+weight. **ETF constituent overlap, sector concentration and look-through exposure
+are not calculated.** A diversified ticker count does not guarantee a
+diversified underlying portfolio.
+
+### Discovery is exploratory
+
+Candidate ranking uses training-period observations, not the reserved holdout.
+Higher-ranked candidates may reflect selection bias from comparing several
+alternatives. The validation portion is a historical **check**, not a second
+independent screening universe. A high historical return is not evidence a
+stock or ETF will outperform going forward. This application does not
+provide a buy/sell recommendation or modify your portfolio automatically.
+
+### Verification and running locally
+
+Use a current Python 3.12 or 3.14 environment and Node.js 24 to reproduce the
+continuous-integration checks. Production and development dependencies are
+separate, with bounded versions; these are **not locked hashes**.
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m ruff check --select E4,E7,E9,F63,F7,F82 backend tests
+python -m pytest -q --cov=backend --cov-branch --cov-report=term-missing --cov-fail-under=85
+node --test tests/test_*.cjs
+```
+
+Start the research app on the loopback interface:
+
+```bash
+python -m uvicorn backend.api:app --host 127.0.0.1 --reload
+```
+
+Ordinary test runs mock external prices. A working live market-data connection,
+CSV import interaction on your browser, responsive layouts, and any production
+deployment require **separate manual verification**. The CI dependency audit is
+informational and can fail without blocking the PR; investigate its findings
+before deployment.
+
+The repository does not choose a software license for its owner. In the absence
+of a license, a public GitHub source repository is **not** automatically open
+source or freely reusable.
+
+### Research trust guide
+
+| Result | How to interpret it |
+| --- | --- |
+| Historical returns and drawdowns | Calculations on adjusted observed prices over the selected complete common history; sensitive to dates and data vendor |
+| Volatility and risk contributions | Historical risk description, not a forecast of future correlations |
+| Backtests and crisis replays | Hypothetical hindsight; no indication a strategy was investable with identical execution conditions |
+| Monte Carlo scenario quantiles | Conditional on the generator, its parameters, contribution schedule and policy; not guaranteed predictive coverage |
+| Goal achievement probabilities | Model-dependent scenario frequencies; not true probabilities of reaching a real financial goal |
+| Candidate stock/ETF rankings | Exploratory comparisons at risk of multiple testing, concentration and hidden ETF overlap |
+| Robust optimization weights | Sensitivity experiment using selected history; not a personalized recommended allocation |
